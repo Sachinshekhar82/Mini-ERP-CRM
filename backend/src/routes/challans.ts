@@ -21,7 +21,6 @@ const createChallanSchema = z.object({
   }),
 });
 
-// Helper function to auto-generate Challan Number (CH-2026-0001)
 async function generateChallanNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const count = await prisma.salesChallan.count();
@@ -66,12 +65,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
     return res.json({
       success: true,
       data: challans,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -112,13 +106,11 @@ router.post(
       const userId = req.user!.id;
       const userName = req.user!.name;
 
-      // 1. Verify Customer
       const customer = await prisma.customer.findUnique({ where: { id: customerId } });
       if (!customer) {
         return res.status(404).json({ success: false, message: 'Customer not found' });
       }
 
-      // 2. Fetch products & validate stock if status is CONFIRMED
       const productIds = items.map((i: any) => i.productId);
       const dbProducts = await prisma.product.findMany({
         where: { id: { in: productIds } },
@@ -126,7 +118,6 @@ router.post(
 
       const productMap = new Map(dbProducts.map((p) => [p.id, p]));
 
-      // Verify all products exist
       for (const item of items) {
         if (!productMap.has(item.productId)) {
           return res.status(400).json({
@@ -136,20 +127,18 @@ router.post(
         }
       }
 
-      // If creating as CONFIRMED, check inventory constraints
       if (status === 'CONFIRMED') {
         for (const item of items) {
           const product = productMap.get(item.productId)!;
           if (product.currentStock < item.quantity) {
             return res.status(400).json({
               success: false,
-              message: `Insufficient stock for product '${product.name}' (${product.sku}). Available: ${product.currentStock}, Requested: ${item.quantity}`,
+              message: `Cannot confirm challan. Insufficient stock for product '${product.name}' (${product.sku}). Available stock: ${product.currentStock}, Requested quantity: ${item.quantity}`,
             });
           }
         }
       }
 
-      // 3. Prepare item snapshot data & calculate totals
       let totalAmount = 0;
       let totalQuantity = 0;
 
@@ -161,9 +150,9 @@ router.post(
 
         return {
           productId: product.id,
-          productName: product.name, // Snapshot name
-          sku: product.sku,         // Snapshot SKU
-          unitPrice: product.unitPrice, // Snapshot price
+          productName: product.name,
+          sku: product.sku,
+          unitPrice: product.unitPrice,
           quantity: item.quantity,
           totalPrice: lineTotal,
         };
@@ -171,7 +160,6 @@ router.post(
 
       const challanNumber = await generateChallanNumber();
 
-      // 4. Create Challan and update stock if CONFIRMED in an atomic transaction
       const result = await prisma.$transaction(async (tx) => {
         const challan = await tx.salesChallan.create({
           data: {
@@ -191,7 +179,6 @@ router.post(
           include: { items: true },
         });
 
-        // If CONFIRMED upon creation -> reduce stock & write movement logs
         if (status === 'CONFIRMED') {
           for (const item of items) {
             const product = productMap.get(item.productId)!;
@@ -225,89 +212,139 @@ router.post(
   }
 );
 
-// PUT /api/challans/:id/status (Update Challan Status e.g. DRAFT -> CONFIRMED or CANCELLED)
-router.put(
-  '/:id/status',
+// Helper for Confirming Challan
+async function confirmChallanAction(challanId: string, userName: string, res: Response) {
+  const existingChallan = await prisma.salesChallan.findUnique({
+    where: { id: challanId },
+    include: { items: { include: { product: true } } },
+  });
+
+  if (!existingChallan) {
+    return res.status(404).json({ success: false, message: 'Sales challan not found' });
+  }
+
+  if (existingChallan.status === 'CONFIRMED') {
+    return res.status(400).json({
+      success: false,
+      message: `Challan #${existingChallan.challanNumber} is already CONFIRMED. Duplicate confirmation is not allowed.`,
+    });
+  }
+
+  if (existingChallan.status === 'CANCELLED') {
+    return res.status(400).json({
+      success: false,
+      message: `Cannot confirm a CANCELLED challan.`,
+    });
+  }
+
+  // Stock check for ALL items
+  for (const item of existingChallan.items) {
+    if (item.product.currentStock < item.quantity) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot confirm challan. Insufficient stock for product '${item.productName}' (${item.sku}). Available stock: ${item.product.currentStock}, Requested quantity: ${item.quantity}`,
+      });
+    }
+  }
+
+  // Atomic database transaction
+  const updatedChallan = await prisma.$transaction(async (tx) => {
+    const updated = await tx.salesChallan.update({
+      where: { id: challanId },
+      data: { status: 'CONFIRMED' },
+      include: { items: true },
+    });
+
+    for (const item of existingChallan.items) {
+      const newStock = item.product.currentStock - item.quantity;
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { currentStock: newStock },
+      });
+
+      await tx.stockMovementLog.create({
+        data: {
+          productId: item.productId,
+          productName: item.productName,
+          quantityChanged: item.quantity,
+          movementType: 'OUT',
+          reason: `Confirmed Sales Challan #${existingChallan.challanNumber}`,
+          createdBy: userName,
+        },
+      });
+    }
+
+    return updated;
+  });
+
+  return res.json({ success: true, data: updatedChallan });
+}
+
+// POST /api/challans/:id/confirm
+router.post(
+  '/:id/confirm',
+  authenticateJWT,
+  requireRole('ADMIN', 'SALES', 'ACCOUNTS'),
+  async (req: AuthRequest, res: Response) => {
+    return confirmChallanAction(req.params.id, req.user!.name, res);
+  }
+);
+
+// POST /api/challans/:id/cancel (Cancel challan without deducting stock)
+router.post(
+  '/:id/cancel',
   authenticateJWT,
   requireRole('ADMIN', 'SALES', 'ACCOUNTS'),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { newStatus } = req.body;
-      const challanId = req.params.id;
-      const userName = req.user!.name;
-
-      if (!['CONFIRMED', 'CANCELLED'].includes(newStatus)) {
-        return res.status(400).json({ success: false, message: 'Status can only be updated to CONFIRMED or CANCELLED' });
-      }
-
       const existingChallan = await prisma.salesChallan.findUnique({
-        where: { id: challanId },
-        include: { items: { include: { product: true } } },
+        where: { id: req.params.id },
       });
 
       if (!existingChallan) {
         return res.status(404).json({ success: false, message: 'Sales challan not found' });
       }
 
-      if (existingChallan.status !== 'DRAFT') {
+      if (existingChallan.status === 'CONFIRMED') {
         return res.status(400).json({
           success: false,
-          message: `Cannot change status of a challan that is already '${existingChallan.status}'`,
+          message: 'Cannot cancel a challan that is already CONFIRMED.',
         });
       }
 
-      // If confirming, validate stock sufficiency for all items
-      if (newStatus === 'CONFIRMED') {
-        for (const item of existingChallan.items) {
-          if (item.product.currentStock < item.quantity) {
-            return res.status(400).json({
-              success: false,
-              message: `Cannot confirm challan. Insufficient stock for '${item.productName}'. Current stock: ${item.product.currentStock}, Requested: ${item.quantity}`,
-            });
-          }
-        }
-      }
-
-      // Execute status update and stock deduction atomically
-      const updatedChallan = await prisma.$transaction(async (tx) => {
-        const updated = await tx.salesChallan.update({
-          where: { id: challanId },
-          data: { status: newStatus },
-          include: { items: true },
-        });
-
-        if (newStatus === 'CONFIRMED') {
-          for (const item of existingChallan.items) {
-            const newStock = item.product.currentStock - item.quantity;
-            await tx.product.update({
-              where: { id: item.productId },
-              data: { currentStock: newStock },
-            });
-
-            await tx.stockMovementLog.create({
-              data: {
-                productId: item.productId,
-                productName: item.productName,
-                quantityChanged: item.quantity,
-                movementType: 'OUT',
-                reason: `Confirmed Sales Challan #${existingChallan.challanNumber}`,
-                createdBy: userName,
-              },
-            });
-          }
-        }
-
-        return updated;
+      const cancelledChallan = await prisma.salesChallan.update({
+        where: { id: req.params.id },
+        data: { status: 'CANCELLED' },
       });
 
-      return res.json({ success: true, data: updatedChallan });
+      return res.json({ success: true, data: cancelledChallan });
     } catch (error: any) {
       return res.status(500).json({ success: false, message: error.message });
     }
   }
 );
 
-// GET /api/challans/:id/pdf (Export Invoice as PDF Bonus)
+// PUT /api/challans/:id/status (Legacy status update handler)
+router.put(
+  '/:id/status',
+  authenticateJWT,
+  requireRole('ADMIN', 'SALES', 'ACCOUNTS'),
+  async (req: AuthRequest, res: Response) => {
+    const { newStatus } = req.body;
+    if (newStatus === 'CONFIRMED') {
+      return confirmChallanAction(req.params.id, req.user!.name, res);
+    } else if (newStatus === 'CANCELLED') {
+      const cancelledChallan = await prisma.salesChallan.update({
+        where: { id: req.params.id },
+        data: { status: 'CANCELLED' },
+      });
+      return res.json({ success: true, data: cancelledChallan });
+    }
+    return res.status(400).json({ success: false, message: 'Invalid status' });
+  }
+);
+
+// GET /api/challans/:id/pdf (Export Invoice as PDF)
 router.get('/:id/pdf', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const challan = await prisma.salesChallan.findUnique({

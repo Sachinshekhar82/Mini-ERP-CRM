@@ -1,14 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('❌ Express Error Handler:', err);
+export interface CustomError extends Error {
+  statusCode?: number;
+  errors?: any[];
+}
 
-  const status = err.status || err.statusCode || 500;
+export const errorHandler = (err: CustomError, req: Request, res: Response, next: NextFunction) => {
+  console.error(`❌ Error [${req.method} ${req.url}]:`, err.message || err);
+
+  const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
+  const errors = err.errors || [];
 
-  res.status(status).json({
+  res.status(statusCode).json({
     success: false,
     message,
+    errors,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 };

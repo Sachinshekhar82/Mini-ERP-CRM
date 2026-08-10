@@ -142,34 +142,48 @@ router.put(
   }
 );
 
-// POST /api/customers/:id/notes (Add Follow-up Note)
-router.post(
-  '/:id/notes',
+// DELETE /api/customers/:id (Delete Customer - Admin Only)
+router.delete(
+  '/:id',
   authenticateJWT,
-  validateRequest(noteSchema),
+  requireRole('ADMIN'),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { note } = req.body;
-      const customerId = req.params.id;
-
-      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
-      if (!customer) {
-        return res.status(404).json({ success: false, message: 'Customer not found' });
-      }
-
-      const newNote = await prisma.customerNote.create({
-        data: {
-          customerId,
-          note,
-          createdBy: req.user?.name || 'Unknown User',
-        },
-      });
-
-      return res.status(201).json({ success: true, data: newNote });
+      await prisma.customer.delete({ where: { id: req.params.id } });
+      return res.json({ success: true, message: 'Customer deleted successfully' });
     } catch (error: any) {
       return res.status(500).json({ success: false, message: error.message });
     }
   }
 );
+
+// Helper for Follow-up Note Creation (handles both /notes and /follow-ups)
+const addNoteHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    const { note } = req.body;
+    const customerId = req.params.id;
+
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    const newNote = await prisma.customerNote.create({
+      data: {
+        customerId,
+        note,
+        createdBy: req.user?.name || 'Unknown User',
+      },
+    });
+
+    return res.status(201).json({ success: true, data: newNote });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/customers/:id/notes & POST /api/customers/:id/follow-ups
+router.post('/:id/notes', authenticateJWT, validateRequest(noteSchema), addNoteHandler);
+router.post('/:id/follow-ups', authenticateJWT, validateRequest(noteSchema), addNoteHandler);
 
 export default router;

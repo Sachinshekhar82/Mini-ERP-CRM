@@ -8,7 +8,6 @@ import { authenticateJWT, AuthRequest, requireRole } from '../middleware/auth';
 
 const router = Router();
 
-// Multer storage for local image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -111,6 +110,19 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// GET /api/products/:id/stock-movements (Product specific stock logs)
+router.get('/:id/stock-movements', authenticateJWT, async (req: AuthRequest, res: Response) => {
+  try {
+    const logs = await prisma.stockMovementLog.findMany({
+      where: { productId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return res.json({ success: true, data: logs });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // POST /api/products (Add product - Admin/Warehouse)
 router.post(
   '/',
@@ -123,7 +135,7 @@ router.post(
 
       const existingSku = await prisma.product.findUnique({ where: { sku } });
       if (existingSku) {
-        return res.status(400).json({ success: false, message: `Product SKU '${sku}' already exists` });
+        return res.status(409).json({ success: false, message: `Product SKU '${sku}' already exists` });
       }
 
       const product = await prisma.product.create({
@@ -139,7 +151,6 @@ router.post(
         },
       });
 
-      // Log initial stock creation in Stock Movement Log
       if (currentStock > 0) {
         await prisma.stockMovementLog.create({
           data: {
@@ -179,7 +190,22 @@ router.put(
   }
 );
 
-// POST /api/products/upload-image (Upload image bonus endpoint)
+// DELETE /api/products/:id (Delete product - Admin Only)
+router.delete(
+  '/:id',
+  authenticateJWT,
+  requireRole('ADMIN'),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      await prisma.product.delete({ where: { id: req.params.id } });
+      return res.json({ success: true, message: 'Product deleted successfully' });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
+  }
+);
+
+// POST /api/products/upload-image (Upload image)
 router.post(
   '/upload-image',
   authenticateJWT,
@@ -194,7 +220,7 @@ router.post(
     return res.json({
       success: true,
       imageUrl,
-      message: 'Product image uploaded successfully (Local storage / AWS S3 fallback)',
+      message: 'Product image uploaded successfully',
     });
   }
 );

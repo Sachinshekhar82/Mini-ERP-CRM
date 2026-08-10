@@ -9,13 +9,16 @@ import { Customers } from './pages/Customers';
 import { Products } from './pages/Products';
 import { StockLogs } from './pages/StockLogs';
 import { Challans } from './pages/Challans';
+import { Profile } from './pages/Profile';
+import { Users } from './pages/Users';
+import { NotFound } from './pages/NotFound';
 
-// Protected Route wrapper component
-const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string }> = ({
+const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; roles?: string[] }> = ({
   children,
   pageTitle,
+  roles,
 }) => {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -38,6 +41,20 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string }
     return <Navigate to="/login" replace />;
   }
 
+  if (roles && user && !roles.includes(user.role)) {
+    return (
+      <div className="app-container">
+        <Sidebar />
+        <div className="main-content">
+          <Navbar title="Access Forbidden" />
+          <main className="page-body">
+            <NotFound />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <Sidebar />
@@ -55,7 +72,7 @@ export const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
-          
+
           <Route
             path="/dashboard"
             element={
@@ -96,8 +113,31 @@ export const App: React.FC = () => {
               </ProtectedLayout>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedLayout pageTitle="User Profile Settings">
+                <Profile />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <ProtectedLayout pageTitle="Admin User Account Management" roles={['ADMIN']}>
+                <Users />
+              </ProtectedLayout>
+            }
+          />
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="*"
+            element={
+              <ProtectedLayout pageTitle="404 Page Not Found">
+                <NotFound />
+              </ProtectedLayout>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -2,11 +2,13 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Users,
+  Users as UsersIcon,
   Package,
   FileText,
   History,
   Box,
+  UserCheck,
+  User,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,11 +17,16 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/customers', label: 'Customer CRM', icon: Users },
+    { to: '/customers', label: 'Customer CRM', icon: UsersIcon },
     { to: '/products', label: 'Products & Inventory', icon: Package },
     { to: '/challans', label: 'Sales Challans', icon: FileText },
     { to: '/stock-logs', label: 'Stock Movement Logs', icon: History },
+    { to: '/profile', label: 'My Profile', icon: User },
   ];
+
+  if (user?.role === 'ADMIN') {
+    navItems.push({ to: '/users', label: 'Manage Users', icon: UserCheck });
+  }
 
   return (
     <aside
