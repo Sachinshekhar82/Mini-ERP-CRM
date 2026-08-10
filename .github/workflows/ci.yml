@@ -1,34 +1,48 @@
-name: Mini ERP + CRM CI/CD Pipeline
+name: Build & Test CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
-  build-and-test:
+  backend-test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js 20
+      - uses: actions/checkout@v3
+      - name: Use Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install & Build Backend
+          node-version: 18
+      - name: Install Backend Dependencies
         run: |
           cd backend
-          npm ci
-          npx prisma generate
+          npm install
+      - name: Generate Prisma Client & Push DB
+        run: |
+          cd backend
+          npx prisma db push --force-reset
+          npm run seed
+      - name: Build & Run Master QA Audit Tests
+        run: |
+          cd backend
           npm run build
+          npx ts-node src/testMasterE2E.ts
 
-      - name: Install & Build Frontend
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install Frontend Dependencies
         run: |
           cd frontend
-          npm ci
+          npm install
+      - name: Build Frontend Production Bundle
+        run: |
+          cd frontend
           npm run build

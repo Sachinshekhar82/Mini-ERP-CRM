@@ -1,21 +1,17 @@
-# Build stage
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS build
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 RUN npm run build
 
-# Production Nginx stage
 FROM nginx:alpine
 
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Custom nginx spa configuration
-RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; index index.html; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 
