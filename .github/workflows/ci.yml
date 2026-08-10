@@ -9,6 +9,12 @@ on:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://neondb_owner:npg_bVodS5HEi6XR@ep-aged-mode-az9ib4ig-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+      JWT_SECRET: "mini_erp_crm_jwt_secret_key_2026_super_secure"
+      JWT_EXPIRES_IN: "7d"
+      PORT: "5000"
+      CORS_ORIGIN: "*"
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js
