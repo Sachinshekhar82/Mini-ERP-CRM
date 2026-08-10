@@ -1,51 +1,66 @@
-# Mini ERP + CRM Operations Portal
+# NEXORA — Mini ERP + CRM Operations Portal
 
-A production-quality full-stack **Mini ERP + CRM Operations Portal** built for a wholesale/distribution business. The platform manages customer relationships, product inventories, stock movement audit trails, and multi-item sales challans with atomic stock deduction and historical price snapshot protection.
+A production-quality full-stack **Mini ERP + CRM Operations Portal** built for wholesale/distribution business operations. The platform manages customer relationships, product inventories, stock movement audit trails, and multi-item sales challans with atomic stock deduction and historical price snapshot protection.
 
-[![GitHub Repo](https://img.shields.io/badge/GitHub-Mini--ERP--CRM-blue?logo=github)](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)
-[![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20TypeScript%20%7C%20Prisma-indigo)]()
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)]()
+---
+
+## 🚀 Live Deployment & Links
+
+- 🌐 **Live Frontend Application**: **[https://mini-erp-crm-gray.vercel.app/](https://mini-erp-crm-gray.vercel.app/)**
+- 📡 **Live Backend API Server**: **[https://mini-erp-crm-puyn.onrender.com/](https://mini-erp-crm-puyn.onrender.com/)**
+- 🩺 **Backend Health Check Endpoint**: **[https://mini-erp-crm-puyn.onrender.com/api/health](https://mini-erp-crm-puyn.onrender.com/api/health)**
+- 📁 **GitHub Repository**: **[https://github.com/Sachinshekhar82/Mini-ERP-CRM.git](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)**
+- 📬 **Postman Collection**: **[`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json)**
+- 📄 **Documentation PDF**: **[`NEXORA_Mini_ERP_CRM_Documentation.pdf`](file:///C:/Users/hp/.gemini/antigravity/brain/a9636382-265e-403c-adb9-af4f815eee4c/NEXORA_Mini_ERP_CRM_Documentation.pdf)**
+
+---
+
+## 🔑 Demo Access Credentials (All 4 Roles)
+
+All accounts are pre-seeded in the live Neon PostgreSQL cloud database with password `password123`:
+
+| Role | Email Address | Password | Permissions & Role Scope |
+| :--- | :--- | :--- | :--- |
+| **👑 ADMIN** | `admin@company.com` | `password123` | Full system access + User Account Management (`/users`) |
+| **💼 SALES** | `sales@company.com` | `password123` | Customer CRM, follow-up timeline notes, sales challan creation |
+| **📦 WAREHOUSE** | `warehouse@company.com` | `password123` | Product catalog management, manual Stock IN/OUT adjustments, audit logs |
+| **📊 ACCOUNTS** | `accounts@company.com` | `password123` | Financial audit, challan viewing/confirmation, PDF invoice export |
 
 ---
 
 ## 📋 Table of Contents
-1. [Project Overview](#1-project-overview)
-2. [Business Problem](#2-business-problem)
-3. [Features](#3-features)
-4. [User Roles & Permissions](#4-user-roles--permissions)
-5. [Technology Stack](#5-technology-stack)
-6. [System Architecture](#6-system-architecture)
-7. [Architecture Diagram](#7-architecture-diagram)
-8. [Folder Structure](#8-folder-structure)
-9. [Database Design](#9-database-design)
-10. [Business Logic](#10-business-logic)
-11. [Challan Confirmation Flow](#11-challan-confirmation-flow)
-12. [API Documentation](#12-api-documentation)
-13. [Authentication](#13-authentication)
-14. [Environment Variables](#14-environment-variables)
-15. [Local Setup](#15-local-setup)
-16. [PostgreSQL Setup](#16-postgresql-setup)
-17. [Prisma Migration](#17-prisma-migration)
-18. [Seed Database](#18-seed-database)
-19. [Start Backend](#19-start-backend)
-20. [Start Frontend](#20-start-frontend)
-21. [Demo Credentials](#21-demo-credentials)
-22. [Postman Collection](#22-postman-collection)
-23. [Deployment Guide](#23-deployment-guide)
-24. [Frontend Deployment](#24-frontend-deployment)
-25. [Backend Deployment](#25-backend-deployment)
-26. [Database Deployment](#26-database-deployment)
-27. [Security Considerations](#27-security-considerations)
-28. [Assumptions](#28-assumptions)
-29. [Known Limitations](#29-known-limitations)
-30. [Future Improvements](#30-future-improvements)
-31. [Screenshots](#31-screenshots)
-32. [Submission Checklist](#32-submission-checklist)
+1. [Live Deployment & Links](#-live-deployment--links)
+2. [Demo Access Credentials](#-demo-access-credentials-all-4-roles)
+3. [Project Overview](#1-project-overview)
+4. [Business Problem](#2-business-problem)
+5. [Features](#3-features)
+6. [User Roles & Permissions](#4-user-roles--permissions)
+7. [Technology Stack](#5-technology-stack)
+8. [System Architecture](#6-system-architecture)
+9. [Architecture Diagram](#7-architecture-diagram)
+10. [Folder Structure](#8-folder-structure)
+11. [Database Design](#9-database-design)
+12. [Business Logic](#10-business-logic)
+13. [Challan Confirmation Flow](#11-challan-confirmation-flow)
+14. [API Documentation](#12-api-documentation)
+15. [Authentication](#13-authentication)
+16. [Environment Variables](#14-environment-variables)
+17. [Local Setup](#15-local-setup)
+18. [PostgreSQL Setup](#16-postgresql-setup)
+19. [Prisma Migration](#17-prisma-migration)
+20. [Seed Database](#18-seed-database)
+21. [Start Backend](#19-start-backend)
+22. [Start Frontend](#20-start-frontend)
+23. [Postman Collection](#21-postman-collection)
+24. [Deployment Guide](#22-deployment-guide)
+25. [Security Considerations](#23-security-considerations)
+26. [Known Limitations](#24-known-limitations)
+27. [Future Improvements](#25-future-improvements)
 
 ---
 
 ## 1. Project Overview
-The **Mini ERP + CRM Operations Portal** provides an integrated operations suite for wholesale distributors to eliminate manual spreadsheet tracking, prevent inventory stockouts, track customer follow-up histories, and issue formal sales challans with atomic stock deduction guarantees.
+**NEXORA** provides an integrated B2B operations suite for wholesale distributors to eliminate manual spreadsheet tracking, prevent inventory stockouts, track customer follow-up histories, and issue formal sales challans with atomic stock deduction guarantees.
 
 ---
 
@@ -65,7 +80,7 @@ Wholesale distributors frequently face operational risks:
 - **Stock Movement Audit Trail**: Manual Stock IN / Stock OUT forms with atomic `prisma.$transaction()` tracking and reason logs.
 - **Sales Challans & PDF Invoices**: Product snapshot fields (`productNameSnapshot`, `skuSnapshot`, `unitPriceSnapshot`), dynamic line items, auto-generated numbers (`CH-2026-XXXX`), and instant PDF downloads.
 - **Atomic Stock Deduction**: Single-transaction multi-item stock check; if **any** product lacks stock, the entire transaction rolls back cleanly.
-- **Operations Dashboard**: Real-time KPI cards, low-stock alert lists, and recent activity feeds.
+- **Instant Operations Dashboard**: Real-time KPI cards, low-stock alert lists, localized skeleton loaders, and frame-0 instant UI shell rendering.
 
 ---
 
@@ -81,10 +96,10 @@ Wholesale distributors frequently face operational risks:
 ---
 
 ## 5. Technology Stack
-- **Frontend**: React 18, TypeScript, Vite, React Router DOM v6, Axios, Lucide React, Vanilla CSS Tokens.
+- **Frontend**: React 18, TypeScript, Vite, React Router DOM v6, Axios, Lucide React, Custom B2B Design System.
 - **Backend**: Node.js, Express.js, TypeScript, Prisma ORM, Zod, BcryptJS, JSONWebToken, Helmet, Morgan, PDFKit.
-- **Database**: PostgreSQL (Production) / SQLite (Development zero-config).
-- **API Testing**: Postman Collection (Collection variables & auto-JWT capture scripts).
+- **Database**: PostgreSQL (Neon.tech Cloud Database in Production).
+- **API Testing**: Postman Collection (Auto-JWT token capture test scripts).
 
 ---
 
@@ -92,19 +107,19 @@ Wholesale distributors frequently face operational risks:
 The application adheres to a decoupled RESTful architecture:
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              React 18 + Vite Frontend App               │
+│           React 18 + Vite SPA (Vercel Host)             │
 │      (Protected Routes, Auth Context, Admin UI)         │
 └────────────────────────────┬────────────────────────────┘
-                             │ Axios HTTP / JWT Bearer
+                             │ Axios HTTP / Bearer JWT
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│               Express.js REST API Server                │
+│          Express.js REST API (Render Host)              │
 │ (Helmet Security, Morgan Logging, Zod, Auth Middleware) │
 └────────────────────────────┬────────────────────────────┘
                              │ Prisma Client
                              ▼
 ┌─────────────────────────────────────────────────────────┐
-│             PostgreSQL / SQLite Database                │
+│          Neon PostgreSQL Cloud Database                 │
 │    (Models: User, Customer, Product, SalesChallan...)   │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -115,13 +130,13 @@ The application adheres to a decoupled RESTful architecture:
 
 ```mermaid
 graph TD
-    User([User Browser]) -->|HTTP Requests| ReactApp[React 18 SPA]
-    ReactApp -->|REST API + Bearer JWT| ExpressServer[Express.js Server]
+    User([User Browser]) -->|HTTP Requests| ReactApp[React 18 SPA on Vercel]
+    ReactApp -->|REST API + Bearer JWT| ExpressServer[Express.js Server on Render]
     ExpressServer -->|Zod Validation| Validators[Request Validators]
     Validators -->|Auth & Role Check| AuthMiddleware[RBAC Middleware]
     AuthMiddleware -->|Service Layer| Services[Business Services]
     Services -->|Prisma $transaction| PrismaORM[Prisma ORM]
-    PrismaORM -->|SQL Queries| Database[(PostgreSQL DB)]
+    PrismaORM -->|SQL Queries| Database[(Neon Cloud PostgreSQL)]
 ```
 
 ---
@@ -139,17 +154,14 @@ mini-erp-crm/
 │   │   ├── middleware/ (auth, errorHandler, validate)
 │   │   ├── routes/ (auth, users, customers, products, stock, challans, dashboard)
 │   │   ├── services/ (auth, customer, product, inventory, challan, dashboard)
-│   │   ├── types/ (auth.ts)
 │   │   ├── utils/ (jwt.ts, password.ts, pdfGenerator.ts)
-│   │   ├── validators/ (auth, customer, product, inventory, challan)
 │   │   ├── app.ts
-│   │   ├── server.ts
-│   │   └── testMasterE2E.ts
+│   │   └── server.ts
 │   ├── package.json
-│   └── tsconfig.json
+│   └── render.yaml
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ (Navbar, Sidebar, Modal, Toast, StatCard)
+│   │   ├── components/ (Navbar, Sidebar, Modal, Toast, StatCard, branding/NexoraLogo.tsx)
 │   │   ├── context/ (AuthContext.tsx)
 │   │   ├── pages/ (Login, Dashboard, Customers, Products, StockLogs, Challans, Profile, Users, NotFound)
 │   │   ├── services/ (api.ts)
@@ -158,9 +170,11 @@ mini-erp-crm/
 │   │   ├── index.css
 │   │   └── main.tsx
 │   ├── package.json
+│   ├── vercel.json
 │   └── vite.config.ts
 ├── postman/
 │   └── Mini-ERP-CRM.postman_collection.json
+├── NEXORA_Mini_ERP_CRM_Documentation.pdf
 └── README.md
 ```
 
@@ -192,7 +206,7 @@ When `POST /api/challans/:id/confirm` is invoked:
 1. Opens a single `prisma.$transaction()` block.
 2. Reads the challan, customer, and all line item requested quantities.
 3. Performs a stock pre-verification check for **every line item**.
-4. **Atomic Rollback Guarantee**: If even 1 product has insufficient stock (e.g. Product A = 5 available/requested 2, Product B = 1 available/requested 5):
+4. **Atomic Rollback Guarantee**: If even 1 product has insufficient stock:
    - ❌ Transaction aborts and rolls back completely.
    - ❌ **0 stock is reduced**.
    - ❌ **0 `StockMovement` logs are created**.
@@ -235,14 +249,19 @@ Authentication is powered by JWT bearer tokens stored in `localStorage`. Request
 
 ## 14. Environment Variables
 
-Create `backend/.env`:
+### Backend (`backend/.env`):
 ```env
 PORT=5000
-NODE_ENV=development
-DATABASE_URL="file:./dev.db"
+NODE_ENV=production
+DATABASE_URL="postgresql://neondb_owner:npg_bVodS5HEi6XR@ep-aged-mode-az9ib4ig-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 JWT_SECRET="mini_erp_crm_jwt_secret_key_2026_super_secure"
 JWT_EXPIRES_IN="7d"
-CORS_ORIGIN="*"
+CORS_ORIGIN="https://mini-erp-crm-gray.vercel.app"
+```
+
+### Frontend (`frontend/.env`):
+```env
+VITE_API_URL=https://mini-erp-crm-puyn.onrender.com/api
 ```
 
 ---
@@ -256,144 +275,39 @@ cd Mini-ERP-CRM
 
 ---
 
-## 16. PostgreSQL Setup
-To switch to PostgreSQL in production, set `DATABASE_URL` in `backend/.env`:
-```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/minierpcrm?schema=public"
-```
-Update `backend/prisma/schema.prisma` datasource provider to `provider = "postgresql"`.
-
----
-
-## 17. Prisma Migration
+## 16. Start Backend
 ```bash
 cd backend
-npx prisma db push
-```
-
----
-
-## 18. Seed Database
-Populate 4 user roles, 10 customers, 15 products, stock logs, and sales challans:
-```bash
-cd backend
-npm run seed
-```
-
----
-
-## 19. Start Backend
-```bash
-cd backend
-# Development mode
+npm install
 npm run dev
-
-# Production build & start
-npm run build
-npm start
 ```
-Server runs at `http://localhost:5000`.
 
 ---
 
-## 20. Start Frontend
+## 17. Start Frontend
 ```bash
 cd frontend
-# Development mode
+npm install
 npm run dev
-
-# Production build
-npm run build
 ```
-Frontend runs at `http://localhost:3000`.
 
 ---
 
-## 21. Demo Credentials
-
-| Role | Email Address | Password |
-| :--- | :--- | :--- |
-| **👑 Admin** | `admin@company.com` | `password123` |
-| **💼 Sales** | `sales@company.com` | `password123` |
-| **📦 Warehouse** | `warehouse@company.com` | `password123` |
-| **📊 Accounts** | `accounts@company.com` | `password123` |
+## 18. Postman Collection
+The Postman collection is located at [`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json). Import into Postman and execute `1. Authentication -> Login` to populate the `{{token}}` variable automatically!
 
 ---
 
-## 22. Postman Collection
-The Postman collection is located at [`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json).
-Import into Postman and execute `1. Authentication -> Login (Admin Role)` to automatically populate the `{{token}}` variable!
+## 19. Known Limitations
+- Challan cancellation currently applies to `DRAFT` status; returning inventory for `CONFIRMED` orders requires issuing a reverse Stock IN adjustment to maintain audit log integrity.
 
 ---
 
-## 23. Deployment Guide
-Recommended cloud platforms: Render, Railway, Vercel, AWS App Runner.
-
----
-
-## 24. Frontend Deployment
-Deploy `frontend/` to **Vercel** or **Netlify**:
-- Build Command: `npm run build`
-- Output Directory: `dist`
-- Environment Variables: `VITE_API_BASE_URL=https://your-backend-domain.com/api`
-
----
-
-## 25. Backend Deployment
-Deploy `backend/` to **Render** or **Railway**:
-- Build Command: `npm run build`
-- Start Command: `npm start`
-- Environment Variables: Set `DATABASE_URL`, `JWT_SECRET`, `PORT`, `CORS_ORIGIN`.
-
----
-
-## 26. Database Deployment
-Deploy PostgreSQL database on **Neon.tech**, **Supabase**, or **Render PostgreSQL**:
-- Copy database connection string into `DATABASE_URL`.
-- Execute `npx prisma db push` and `npm run seed`.
-
----
-
-## 27. Security Considerations
-- **Helmet Security**: Protected HTTP headers (`crossOriginResourcePolicy: false`).
-- **No Password Exposure**: Password hashes are stripped before returning user responses.
-- **Strict Input Validation**: Zod schema validation on all POST/PUT bodies.
-- **Single Source of Truth**: Backend RBAC middleware independently verifies permissions regardless of frontend state.
-
----
-
-## 28. Assumptions
-- Business operates in INR currency (₹).
-- Standard GSTIN numbers consist of 15 alphanumeric characters.
-
----
-
-## 29. Known Limitations
-- Challan cancellation currently applies to `DRAFT` status; returning inventory for `CONFIRMED` orders requires issuing a reverse Stock IN adjustment.
-
----
-
-## 30. Future Improvements
-- Multi-currency support.
-- Automated email dispatch of PDF invoices directly to customer email addresses.
-- Multi-warehouse location routing.
-
----
-
-## 31. Screenshots
-*(Add application dashboard and challan invoice screenshots here)*
-
----
-
-## 32. Submission Checklist
-- [x] Decoupled backend REST API & React frontend.
-- [x] Complete Prisma PostgreSQL/SQLite schema with snapshot fields.
-- [x] Bcrypt password hashing & JWT authentication.
-- [x] 4 distinct role permissions (`ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`).
-- [x] Customer CRM with separate follow-up timeline notes.
-- [x] Product catalog & low stock warning alerts (`currentStock <= minimumStock`).
-- [x] Stock IN & Stock OUT manual adjustment forms with movement audit logs.
-- [x] Sales challans with product snapshot protection.
-- [x] Multi-item atomic stock deduction transaction (`prisma.$transaction`).
-- [x] Postman collection with auto-JWT capture scripts.
-- [x] Clean GitHub repository with detailed documentation.
+## 20. Submission Checklist
+- [x] **GitHub Repository Link**: [https://github.com/Sachinshekhar82/Mini-ERP-CRM.git](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)
+- [x] **Live Frontend Application**: [https://mini-erp-crm-gray.vercel.app/](https://mini-erp-crm-gray.vercel.app/)
+- [x] **Live Backend API**: [https://mini-erp-crm-puyn.onrender.com/](https://mini-erp-crm-puyn.onrender.com/)
+- [x] **Demo Login Credentials for All Roles**: Pre-seeded in cloud PostgreSQL (`admin@company.com`, `sales@company.com`, `warehouse@company.com`, `accounts@company.com`).
+- [x] **Postman Collection**: [`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json)
+- [x] **Documentation PDF**: [`NEXORA_Mini_ERP_CRM_Documentation.pdf`](file:///C:/Users/hp/.gemini/antigravity/brain/a9636382-265e-403c-adb9-af4f815eee4c/NEXORA_Mini_ERP_CRM_Documentation.pdf)
+- [x] **Architecture & Performance**: Instant frame-0 UI shell, localized skeletons, and PostgreSQL SQL aggregates.
