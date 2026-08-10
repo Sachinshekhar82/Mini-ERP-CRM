@@ -140,15 +140,26 @@ export const Challans: React.FC = () => {
     }
   };
 
-  const handleDownloadPDF = (challanId: string, challanNumber: string) => {
-    const pdfUrl = `/api/challans/${challanId}/pdf`;
-    const link = document.createElement('a');
-    link.href = pdfUrl;
-    link.target = '_blank';
-    link.download = `Challan-${challanNumber}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownloadPDF = async (challanId: string, challanNumber: string) => {
+    try {
+      setToast({ message: `Generating PDF for ${challanNumber}...`, type: 'success' });
+      const response = await api.get(`/challans/${challanId}/pdf`, {
+        responseType: 'blob',
+      });
+      
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Sales-Challan-${challanNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('PDF Download Error:', err);
+      setToast({ message: 'Failed to download PDF invoice', type: 'error' });
+    }
   };
 
   return (
