@@ -4,25 +4,30 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding PostgreSQL Database with Idempotent Upserts...');
+  console.log('🌱 Seeding PostgreSQL Database with Clean Single Credentials Set...');
 
-  // 1. Create Users for all 4 required roles with secure bcrypt password hashing
+  // Remove any legacy demo accounts if present
+  await prisma.user.deleteMany({
+    where: {
+      email: {
+        endsWith: '@demo.com',
+      },
+    },
+  });
+
+  // Create Users for all 4 required roles with secure bcrypt password hashing
   const hashedPassword = await bcrypt.hash('password123', 10);
 
-  const demoUsers = [
-    { name: 'System Admin', email: 'admin@demo.com', role: 'ADMIN' },
+  const companyUsers = [
     { name: 'System Admin', email: 'admin@company.com', role: 'ADMIN' },
-    { name: 'Sales Manager', email: 'sales@demo.com', role: 'SALES' },
     { name: 'Sales Manager', email: 'sales@company.com', role: 'SALES' },
-    { name: 'Warehouse Supervisor', email: 'warehouse@demo.com', role: 'WAREHOUSE' },
     { name: 'Warehouse Supervisor', email: 'warehouse@company.com', role: 'WAREHOUSE' },
-    { name: 'Accounts Officer', email: 'accounts@demo.com', role: 'ACCOUNTS' },
     { name: 'Accounts Officer', email: 'accounts@company.com', role: 'ACCOUNTS' },
   ];
 
   const userRecords: Record<string, any> = {};
 
-  for (const u of demoUsers) {
+  for (const u of companyUsers) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: { password: hashedPassword, role: u.role, name: u.name },
@@ -36,12 +41,12 @@ async function main() {
     userRecords[u.email] = user;
   }
 
-  const admin = userRecords['admin@demo.com'];
-  const sales = userRecords['sales@demo.com'];
-  const warehouse = userRecords['warehouse@demo.com'];
-  const accounts = userRecords['accounts@demo.com'];
+  const admin = userRecords['admin@company.com'];
+  const sales = userRecords['sales@company.com'];
+  const warehouse = userRecords['warehouse@company.com'];
+  const accounts = userRecords['accounts@company.com'];
 
-  console.log('✅ Seeded 4 User Roles (admin@demo.com, sales@demo.com, warehouse@demo.com, accounts@demo.com)');
+  console.log('✅ Seeded Clean 4 User Roles (admin@company.com, sales@company.com, warehouse@company.com, accounts@company.com)');
 
   // 2. Idempotent Customer Upserts
   const customerData = [
@@ -298,7 +303,7 @@ async function main() {
     console.log('✅ Seeded Sales Challans with Product Snapshot Fields');
   }
 
-  console.log('🎉 Idempotent PostgreSQL Seeding Complete!');
+  console.log('🎉 Clean Single Credentials PostgreSQL Seeding Complete!');
 }
 
 main()

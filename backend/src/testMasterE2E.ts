@@ -26,32 +26,28 @@ async function runMasterE2ETestSuite() {
 
   try {
     // -------------------------------------------------------------------------
-    // 1. AUTH & ROLES AUDIT (Verifying PostgreSQL Demo Users)
+    // 1. AUTH & ROLES AUDIT (Verifying Single Primary Credentials Set)
     // -------------------------------------------------------------------------
     console.log('--- 1. TESTING AUTHENTICATION & ROLE-BASED AUTHORIZATION ---');
-    const adminDemo = await AuthService.login('admin@demo.com', 'password123');
-    const salesDemo = await AuthService.login('sales@demo.com', 'password123');
-    const warehouseDemo = await AuthService.login('warehouse@demo.com', 'password123');
-    const accountsDemo = await AuthService.login('accounts@demo.com', 'password123');
-
-    assert(adminDemo.user.role === 'ADMIN', 'Admin Demo Login (admin@demo.com) Successful');
-    assert(salesDemo.user.role === 'SALES', 'Sales Demo Login (sales@demo.com) Successful');
-    assert(warehouseDemo.user.role === 'WAREHOUSE', 'Warehouse Demo Login (warehouse@demo.com) Successful');
-    assert(accountsDemo.user.role === 'ACCOUNTS', 'Accounts Demo Login (accounts@demo.com) Successful');
-
-    // Also verify @company.com credentials
     const adminComp = await AuthService.login('admin@company.com', 'password123');
+    const salesComp = await AuthService.login('sales@company.com', 'password123');
+    const warehouseComp = await AuthService.login('warehouse@company.com', 'password123');
+    const accountsComp = await AuthService.login('accounts@company.com', 'password123');
+
     assert(adminComp.user.role === 'ADMIN', 'Admin Login (admin@company.com) Successful');
+    assert(salesComp.user.role === 'SALES', 'Sales Login (sales@company.com) Successful');
+    assert(warehouseComp.user.role === 'WAREHOUSE', 'Warehouse Login (warehouse@company.com) Successful');
+    assert(accountsComp.user.role === 'ACCOUNTS', 'Accounts Login (accounts@company.com) Successful');
 
     try {
-      await AuthService.login('admin@demo.com', 'wrongpassword');
+      await AuthService.login('admin@company.com', 'wrongpassword');
       assert(false, 'Invalid password check');
     } catch (err: any) {
       assert(err.statusCode === 401, 'Invalid password returns HTTP 401');
     }
 
     try {
-      await AuthService.login('nonexistent@demo.com', 'password123');
+      await AuthService.login('nonexistent@company.com', 'password123');
       assert(false, 'Invalid email check');
     } catch (err: any) {
       assert(err.statusCode === 401, 'Invalid email returns HTTP 401');
@@ -76,7 +72,7 @@ async function runMasterE2ETestSuite() {
     const searchCust = await CustomerService.getCustomers({ search: 'PG Audit' });
     assert(searchCust.customers.length > 0, 'Customer Search by Name/Business');
 
-    const followUp = await CustomerService.addFollowUp(newCust.id, 'PostgreSQL Follow up test note', salesDemo.user.id);
+    const followUp = await CustomerService.addFollowUp(newCust.id, 'PostgreSQL Follow up test note', salesComp.user.id);
     assert(Boolean(followUp.id), 'Customer Follow-up Note Created in Relational Model');
 
     // -------------------------------------------------------------------------
@@ -93,7 +89,7 @@ async function runMasterE2ETestSuite() {
         minimumStock: 2,
         warehouseLocation: 'Rack CR-01',
       },
-      warehouseDemo.user.id
+      warehouseComp.user.id
     );
 
     const prodB = await ProductService.createProduct(
@@ -106,7 +102,7 @@ async function runMasterE2ETestSuite() {
         minimumStock: 2,
         warehouseLocation: 'Rack CR-02',
       },
-      warehouseDemo.user.id
+      warehouseComp.user.id
     );
 
     assert(prodA.currentStock === 5 && prodB.currentStock === 2, 'Products A (5) & B (2) Created Successfully in PostgreSQL');
@@ -128,7 +124,7 @@ async function runMasterE2ETestSuite() {
           { productId: prodB.id, quantity: 5 }, // 5 requested vs 2 available (INSUFFICIENT!)
         ],
       },
-      salesDemo.user.id
+      salesComp.user.id
     );
 
     const initialMovementLogsCount = await prisma.stockMovement.count({
@@ -137,7 +133,7 @@ async function runMasterE2ETestSuite() {
 
     console.log('Attempting confirmation of invalid challan...');
     try {
-      await ChallanService.confirmChallan(criticalChallan.id, salesDemo.user.id);
+      await ChallanService.confirmChallan(criticalChallan.id, salesComp.user.id);
       assert(false, 'CRITICAL TEST: Confirmation should have failed!');
     } catch (err: any) {
       assert(
@@ -168,10 +164,10 @@ async function runMasterE2ETestSuite() {
     // -------------------------------------------------------------------------
     console.log('\n--- 5. TESTING VALID CONFIRMATION AFTER REPLENISHMENT ---');
     // Stock IN 10 units for Product B
-    await InventoryService.stockIn(prodB.id, 10, 'Replenishment for QA Test', warehouseDemo.user.id);
+    await InventoryService.stockIn(prodB.id, 10, 'Replenishment for QA Test', warehouseComp.user.id);
 
     // Now confirm the challan (Product A req 2 vs 5 avail, Product B req 5 vs 12 avail)
-    const confirmedChallan = await ChallanService.confirmChallan(criticalChallan.id, salesDemo.user.id);
+    const confirmedChallan = await ChallanService.confirmChallan(criticalChallan.id, salesComp.user.id);
 
     const postConfirmA = await ProductService.getProductById(prodA.id);
     const postConfirmB = await ProductService.getProductById(prodB.id);
