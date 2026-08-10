@@ -11,7 +11,6 @@ A production-quality full-stack **Mini ERP + CRM Operations Portal** built for w
 - 🩺 **Backend Health Check Endpoint**: **[https://mini-erp-crm-puyn.onrender.com/api/health](https://mini-erp-crm-puyn.onrender.com/api/health)**
 - 📁 **GitHub Repository**: **[https://github.com/Sachinshekhar82/Mini-ERP-CRM.git](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)**
 - 📬 **Postman Collection**: **[`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json)**
-- 📄 **Documentation PDF**: **[`NEXORA_Mini_ERP_CRM_Documentation.pdf`](file:///C:/Users/hp/.gemini/antigravity/brain/a9636382-265e-403c-adb9-af4f815eee4c/NEXORA_Mini_ERP_CRM_Documentation.pdf)**
 
 ---
 
@@ -121,7 +120,7 @@ The application adheres to a decoupled RESTful architecture:
 ┌─────────────────────────────────────────────────────────┐
 │          Neon PostgreSQL Cloud Database                 │
 │    (Models: User, Customer, Product, SalesChallan...)   │
-└─────────────────────────────────────────────────────────┘
+└────────────────────────────┬────────────────────────────┘
 ```
 
 ---
@@ -174,7 +173,6 @@ mini-erp-crm/
 │   └── vite.config.ts
 ├── postman/
 │   └── Mini-ERP-CRM.postman_collection.json
-├── NEXORA_Mini_ERP_CRM_Documentation.pdf
 └── README.md
 ```
 
@@ -309,5 +307,4 @@ The Postman collection is located at [`postman/Mini-ERP-CRM.postman_collection.j
 - [x] **Live Backend API**: [https://mini-erp-crm-puyn.onrender.com/](https://mini-erp-crm-puyn.onrender.com/)
 - [x] **Demo Login Credentials for All Roles**: Pre-seeded in cloud PostgreSQL (`admin@company.com`, `sales@company.com`, `warehouse@company.com`, `accounts@company.com`).
 - [x] **Postman Collection**: [`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json)
-- [x] **Documentation PDF**: [`NEXORA_Mini_ERP_CRM_Documentation.pdf`](file:///C:/Users/hp/.gemini/antigravity/brain/a9636382-265e-403c-adb9-af4f815eee4c/NEXORA_Mini_ERP_CRM_Documentation.pdf)
 - [x] **Architecture & Performance**: Instant frame-0 UI shell, localized skeletons, and PostgreSQL SQL aggregates.
