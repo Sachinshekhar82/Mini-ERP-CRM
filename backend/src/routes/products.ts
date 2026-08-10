@@ -22,13 +22,13 @@ const upload = multer({ storage });
 
 const productSchema = z.object({
   body: z.object({
-    name: z.string().min(2, 'Product name is required'),
+    productName: z.string().min(2, 'Product name is required'),
     sku: z.string().min(2, 'SKU code is required'),
     category: z.string().min(2, 'Category is required'),
     unitPrice: z.number().positive('Price must be greater than 0'),
     currentStock: z.number().int().nonnegative('Stock cannot be negative'),
-    minStockAlert: z.number().int().nonnegative().default(5),
-    location: z.string().min(2, 'Warehouse location is required'),
+    minimumStock: z.number().int().nonnegative().default(5),
+    warehouseLocation: z.string().min(2, 'Warehouse location is required'),
     imageUrl: z.string().optional(),
   }),
 });
@@ -48,10 +48,10 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
 
     if (search) {
       whereClause.OR = [
-        { name: { contains: search } },
+        { productName: { contains: search } },
         { sku: { contains: search } },
         { category: { contains: search } },
-        { location: { contains: search } },
+        { warehouseLocation: { contains: search } },
       ];
     }
 
@@ -67,7 +67,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
 
     let products = allProducts;
     if (lowStockOnly) {
-      products = products.filter((p) => p.currentStock <= p.minStockAlert);
+      products = products.filter((p) => p.currentStock <= p.minimumStock);
     }
 
     const paginatedProducts = products.slice(skip, skip + limit);
@@ -93,7 +93,7 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
     const product = await prisma.product.findUnique({
       where: { id: req.params.id },
       include: {
-        stockLogs: {
+        stockMovements: {
           orderBy: { createdAt: 'desc' },
           take: 10,
         },
@@ -110,12 +110,13 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /api/products/:id/stock-movements (Product specific stock logs)
+// GET /api/products/:id/stock-movements
 router.get('/:id/stock-movements', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
-    const logs = await prisma.stockMovementLog.findMany({
+    const logs = await prisma.stockMovement.findMany({
       where: { productId: req.params.id },
       orderBy: { createdAt: 'desc' },
+      include: { createdBy: { select: { name: true } } },
     });
     return res.json({ success: true, data: logs });
   } catch (error: any) {
@@ -123,7 +124,7 @@ router.get('/:id/stock-movements', authenticateJWT, async (req: AuthRequest, res
   }
 });
 
-// POST /api/products (Add product - Admin/Warehouse)
+// POST /api/products (Add product)
 router.post(
   '/',
   authenticateJWT,
@@ -131,7 +132,7 @@ router.post(
   validateRequest(productSchema),
   async (req: AuthRequest, res: Response) => {
     try {
-      const { name, sku, category, unitPrice, currentStock, minStockAlert, location, imageUrl } = req.body;
+      const { productName, sku, category, unitPrice, currentStock, minimumStock, warehouseLocation, imageUrl } = req.body;
 
       const existingSku = await prisma.product.findUnique({ where: { sku } });
       if (existingSku) {
@@ -140,26 +141,25 @@ router.post(
 
       const product = await prisma.product.create({
         data: {
-          name,
+          productName,
           sku,
           category,
           unitPrice,
           currentStock,
-          minStockAlert,
-          location,
+          minimumStock,
+          warehouseLocation,
           imageUrl,
         },
       });
 
       if (currentStock > 0) {
-        await prisma.stockMovementLog.create({
+        await prisma.stockMovement.create({
           data: {
             productId: product.id,
-            productName: product.name,
             quantityChanged: currentStock,
             movementType: 'IN',
             reason: 'Initial Product Stock Setup',
-            createdBy: req.user?.name || 'System',
+            createdById: req.user!.id,
           },
         });
       }
@@ -190,7 +190,7 @@ router.put(
   }
 );
 
-// DELETE /api/products/:id (Delete product - Admin Only)
+// DELETE /api/products/:id (Delete product)
 router.delete(
   '/:id',
   authenticateJWT,

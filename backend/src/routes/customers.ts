@@ -8,12 +8,12 @@ const router = Router();
 
 const customerSchema = z.object({
   body: z.object({
-    name: z.string().min(2, 'Name is required'),
+    customerName: z.string().min(2, 'Name is required'),
     mobile: z.string().min(10, 'Valid mobile number required'),
     email: z.string().email('Valid email required'),
     businessName: z.string().min(2, 'Business name required'),
     gstNumber: z.string().optional(),
-    type: z.enum(['RETAIL', 'WHOLESALE', 'DISTRIBUTOR']),
+    customerType: z.enum(['RETAIL', 'WHOLESALE', 'DISTRIBUTOR']),
     address: z.string().min(5, 'Address is required'),
     status: z.enum(['LEAD', 'ACTIVE', 'INACTIVE']).default('LEAD'),
     followUpDate: z.string().optional(),
@@ -33,7 +33,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = (req.query.search as string) || '';
-    const type = req.query.type as string;
+    const customerType = req.query.customerType as string || req.query.type as string;
     const status = req.query.status as string;
 
     const skip = (page - 1) * limit;
@@ -42,14 +42,14 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
 
     if (search) {
       whereClause.OR = [
-        { name: { contains: search } },
+        { customerName: { contains: search } },
         { email: { contains: search } },
         { businessName: { contains: search } },
         { mobile: { contains: search } },
       ];
     }
 
-    if (type) whereClause.type = type;
+    if (customerType) whereClause.customerType = customerType;
     if (status) whereClause.status = status;
 
     const [customers, total] = await Promise.all([
@@ -59,7 +59,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
         skip,
         take: limit,
         include: {
-          _count: { select: { challans: true, followUpNotes: true } },
+          _count: { select: { challans: true, followUps: true } },
         },
       }),
       prisma.customer.count({ where: whereClause }),
@@ -86,7 +86,7 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
     const customer = await prisma.customer.findUnique({
       where: { id: req.params.id },
       include: {
-        followUpNotes: { orderBy: { createdAt: 'desc' } },
+        followUps: { orderBy: { createdAt: 'desc' }, include: { createdBy: { select: { name: true } } } },
         challans: {
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -157,7 +157,7 @@ router.delete(
   }
 );
 
-// Helper for Follow-up Note Creation (handles both /notes and /follow-ups)
+// Helper for Follow-up Note Creation
 const addNoteHandler = async (req: AuthRequest, res: Response) => {
   try {
     const { note } = req.body;
@@ -168,21 +168,20 @@ const addNoteHandler = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    const newNote = await prisma.customerNote.create({
+    const newFollowUp = await prisma.customerFollowUp.create({
       data: {
         customerId,
         note,
-        createdBy: req.user?.name || 'Unknown User',
+        createdById: req.user!.id,
       },
     });
 
-    return res.status(201).json({ success: true, data: newNote });
+    return res.status(201).json({ success: true, data: newFollowUp });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// POST /api/customers/:id/notes & POST /api/customers/:id/follow-ups
 router.post('/:id/notes', authenticateJWT, validateRequest(noteSchema), addNoteHandler);
 router.post('/:id/follow-ups', authenticateJWT, validateRequest(noteSchema), addNoteHandler);
 

@@ -6,68 +6,71 @@ export interface User {
   createdAt?: string;
 }
 
-export interface CustomerNote {
+export interface CustomerFollowUp {
   id: string;
   customerId: string;
   note: string;
-  createdBy: string;
+  createdById: string;
+  createdBy?: { name: string };
   createdAt: string;
 }
 
 export interface Customer {
   id: string;
-  name: string;
+  customerName: string;
   mobile: string;
   email: string;
   businessName: string;
   gstNumber?: string;
-  type: 'RETAIL' | 'WHOLESALE' | 'DISTRIBUTOR';
+  customerType: 'RETAIL' | 'WHOLESALE' | 'DISTRIBUTOR';
   address: string;
   status: 'LEAD' | 'ACTIVE' | 'INACTIVE';
   followUpDate?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
-  followUpNotes?: CustomerNote[];
+  followUps?: CustomerFollowUp[];
   _count?: {
     challans: number;
-    followUpNotes: number;
+    followUps: number;
   };
 }
 
-export interface StockMovementLog {
+export interface StockMovement {
   id: string;
   productId: string;
-  productName: string;
+  product?: { productName: string; sku: string };
+  productName?: string;
   quantityChanged: number;
   movementType: 'IN' | 'OUT';
   reason: string;
-  createdBy: string;
+  createdById: string;
+  createdBy?: { name: string } | string;
   createdAt: string;
 }
 
 export interface Product {
   id: string;
-  name: string;
+  productName: string;
   sku: string;
   category: string;
   unitPrice: number;
   currentStock: number;
-  minStockAlert: number;
-  location: string;
+  minimumStock: number;
+  warehouseLocation: string;
   imageUrl?: string;
   createdAt: string;
   updatedAt: string;
-  stockLogs?: StockMovementLog[];
+  stockMovements?: StockMovement[];
 }
 
-export interface ChallanItem {
+export interface SalesChallanItem {
   id: string;
   challanId: string;
   productId: string;
-  productName: string;
-  sku: string;
-  unitPrice: number;
+  productNameSnapshot: string;
+  skuSnapshot: string;
+  unitPriceSnapshot: number;
   quantity: number;
   totalPrice: number;
 }
@@ -76,17 +79,18 @@ export interface SalesChallan {
   id: string;
   challanNumber: string;
   customerId: string;
-  customerName: string;
+  customerName?: string;
   totalAmount: number;
   totalQuantity: number;
   status: 'DRAFT' | 'CONFIRMED' | 'CANCELLED';
   createdById: string;
-  createdByName: string;
+  createdBy?: { name: string } | string;
+  createdByName?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
   customer?: Customer;
-  items: ChallanItem[];
+  items: SalesChallanItem[];
 }
 
 export interface DashboardStats {
@@ -107,7 +111,22 @@ export interface DashboardStats {
     totalRevenue: number;
   };
   recentActivity: {
-    stockLogs: StockMovementLog[];
-    recentChallans: SalesChallan[];
+    stockLogs: Array<{
+      id: string;
+      productName: string;
+      quantityChanged: number;
+      movementType: 'IN' | 'OUT';
+      reason: string;
+      createdBy: string;
+      createdAt: string;
+    }>;
+    recentChallans: Array<{
+      id: string;
+      challanNumber: string;
+      customerName: string;
+      totalAmount: number;
+      status: string;
+      createdAt: string;
+    }>;
   };
 }

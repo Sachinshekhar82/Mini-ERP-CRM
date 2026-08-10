@@ -29,19 +29,19 @@ router.get('/stats', authenticateJWT, async (req: AuthRequest, res: Response) =>
         _sum: { totalAmount: true },
         _count: true,
       }),
-      prisma.stockMovementLog.findMany({
+      prisma.stockMovement.findMany({
         orderBy: { createdAt: 'desc' },
         take: 5,
+        include: { product: { select: { productName: true } }, createdBy: { select: { name: true } } },
       }),
       prisma.salesChallan.findMany({
         orderBy: { createdAt: 'desc' },
         take: 5,
-        include: { customer: { select: { name: true, businessName: true } } },
+        include: { customer: { select: { customerName: true, businessName: true } } },
       }),
     ]);
 
-    // Calculate Low Stock alerts & Inventory valuation
-    const lowStockItems = allProducts.filter((p) => p.currentStock <= p.minStockAlert);
+    const lowStockItems = allProducts.filter((p) => p.currentStock <= p.minimumStock);
     const totalInventoryValue = allProducts.reduce((sum, p) => sum + p.currentStock * p.unitPrice, 0);
 
     return res.json({
@@ -64,8 +64,23 @@ router.get('/stats', authenticateJWT, async (req: AuthRequest, res: Response) =>
           totalRevenue: confirmedChallans._sum.totalAmount || 0,
         },
         recentActivity: {
-          stockLogs: recentStockLogs,
-          recentChallans,
+          stockLogs: recentStockLogs.map((log) => ({
+            id: log.id,
+            productName: log.product.productName,
+            quantityChanged: log.quantityChanged,
+            movementType: log.movementType,
+            reason: log.reason,
+            createdBy: log.createdBy.name,
+            createdAt: log.createdAt,
+          })),
+          recentChallans: recentChallans.map((c) => ({
+            id: c.id,
+            challanNumber: c.challanNumber,
+            customerName: c.customer.businessName || c.customer.customerName,
+            totalAmount: c.totalAmount,
+            status: c.status,
+            createdAt: c.createdAt,
+          })),
         },
       },
     });

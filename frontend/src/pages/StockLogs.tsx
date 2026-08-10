@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import api from '../services/api';
-import { StockMovementLog, Product } from '../types';
+import { StockMovement, Product } from '../types';
 import { Modal } from '../components/Modal';
 import { Toast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 
 export const StockLogs: React.FC = () => {
-  const [logs, setLogs] = useState<StockMovementLog[]>([]);
+  const [logs, setLogs] = useState<StockMovement[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Quick Adjust Modal
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const [adjustForm, setAdjustForm] = useState({
     productId: '',
@@ -27,7 +26,7 @@ export const StockLogs: React.FC = () => {
     try {
       setLoading(true);
       const [logsRes, prodRes] = await Promise.all([
-        api.get('/stock/logs'),
+        api.get('/inventory/movements'),
         api.get('/products'),
       ]);
       setLogs(logsRes.data.data);
@@ -49,7 +48,12 @@ export const StockLogs: React.FC = () => {
   const handleAdjustStock = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.post('/stock/adjust', adjustForm);
+      const endpoint = adjustForm.movementType === 'IN' ? '/inventory/stock-in' : '/inventory/stock-out';
+      await api.post(endpoint, {
+        productId: adjustForm.productId,
+        quantity: adjustForm.quantity,
+        reason: adjustForm.reason,
+      });
       setToast({ message: 'Stock adjustment recorded successfully', type: 'success' });
       setIsAdjustModalOpen(false);
       fetchLogsAndProducts();
@@ -83,7 +87,6 @@ export const StockLogs: React.FC = () => {
         )}
       </div>
 
-      {/* Stock Log Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-container">
           <table>
@@ -118,12 +121,16 @@ export const StockLogs: React.FC = () => {
                         {log.movementType === 'IN' ? 'IN (+)' : 'OUT (-)'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{log.productName}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {log.product?.productName || log.productName || 'Product'}
+                    </td>
                     <td style={{ fontWeight: 700, color: log.movementType === 'IN' ? '#34D399' : '#F87171' }}>
                       {log.movementType === 'IN' ? `+${log.quantityChanged}` : `-${log.quantityChanged}`} Units
                     </td>
                     <td style={{ color: 'var(--text-secondary)' }}>{log.reason}</td>
-                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>{log.createdBy}</td>
+                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
+                      {typeof log.createdBy === 'object' ? log.createdBy?.name : log.createdBy || 'User'}
+                    </td>
                     <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                       {new Date(log.createdAt).toLocaleString('en-IN')}
                     </td>
@@ -135,7 +142,6 @@ export const StockLogs: React.FC = () => {
         </div>
       </div>
 
-      {/* Adjust Inventory Modal */}
       <Modal
         isOpen={isAdjustModalOpen}
         onClose={() => setIsAdjustModalOpen(false)}
@@ -152,7 +158,7 @@ export const StockLogs: React.FC = () => {
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.sku}) — Current Stock: {p.currentStock}
+                  {p.productName || (p as any).name} ({p.sku}) — Current Stock: {p.currentStock}
                 </option>
               ))}
             </select>

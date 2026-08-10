@@ -14,20 +14,18 @@ export const Products: React.FC = () => {
   const [lowStockFilter, setLowStockFilter] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // Form State
   const [formData, setFormData] = useState({
-    name: '',
+    productName: '',
     sku: '',
     category: '',
     unitPrice: 0,
     currentStock: 0,
-    minStockAlert: 5,
-    location: '',
+    minimumStock: 5,
+    warehouseLocation: '',
     imageUrl: '',
   });
 
@@ -56,13 +54,13 @@ export const Products: React.FC = () => {
 
   const handleOpenAdd = () => {
     setFormData({
-      name: '',
+      productName: '',
       sku: `SKU-${Math.floor(100 + Math.random() * 900)}`,
       category: 'Power Tools',
       unitPrice: 1000,
       currentStock: 20,
-      minStockAlert: 5,
-      location: 'Rack A-01, Warehouse 1',
+      minimumStock: 5,
+      warehouseLocation: 'Rack A-01, Warehouse 1',
       imageUrl: '',
     });
     setIsAddModalOpen(true);
@@ -71,13 +69,13 @@ export const Products: React.FC = () => {
   const handleOpenEdit = (prod: Product) => {
     setSelectedProduct(prod);
     setFormData({
-      name: prod.name,
+      productName: prod.productName || (prod as any).name || '',
       sku: prod.sku,
       category: prod.category,
       unitPrice: prod.unitPrice,
       currentStock: prod.currentStock,
-      minStockAlert: prod.minStockAlert,
-      location: prod.location,
+      minimumStock: prod.minimumStock || (prod as any).minStockAlert || 5,
+      warehouseLocation: prod.warehouseLocation || (prod as any).location || '',
       imageUrl: prod.imageUrl || '',
     });
     setIsEditModalOpen(true);
@@ -108,10 +106,8 @@ export const Products: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <Toast message={toast?.message || null} type={toast?.type} onClose={() => setToast(null)} />
 
-      {/* Header Bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '300px' }}>
-          {/* Search Box */}
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
@@ -124,7 +120,6 @@ export const Products: React.FC = () => {
             />
           </div>
 
-          {/* Category Filter */}
           <select
             className="form-select"
             style={{ width: '160px' }}
@@ -138,7 +133,6 @@ export const Products: React.FC = () => {
             <option value="Fasteners">Fasteners</option>
           </select>
 
-          {/* Low Stock Toggle Button */}
           <button
             type="button"
             className={`btn ${lowStockFilter ? 'btn-danger' : 'btn-secondary'}`}
@@ -158,7 +152,6 @@ export const Products: React.FC = () => {
         )}
       </div>
 
-      {/* Product Data Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-container">
           <table>
@@ -188,11 +181,14 @@ export const Products: React.FC = () => {
                 </tr>
               ) : (
                 products.map((prod) => {
-                  const isLowStock = prod.currentStock <= prod.minStockAlert;
+                  const minStock = prod.minimumStock || (prod as any).minStockAlert || 5;
+                  const isLowStock = prod.currentStock <= minStock;
                   return (
                     <tr key={prod.id}>
                       <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{prod.name}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                          {prod.productName || (prod as any).name}
+                        </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prod.sku}</div>
                       </td>
                       <td>
@@ -206,10 +202,10 @@ export const Products: React.FC = () => {
                           {prod.currentStock} Units
                         </span>
                       </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{prod.minStockAlert}</td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{minStock}</td>
                       <td>
                         <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                          <MapPin size={13} color="var(--primary)" /> {prod.location}
+                          <MapPin size={13} color="var(--primary)" /> {prod.warehouseLocation || (prod as any).location}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -232,7 +228,6 @@ export const Products: React.FC = () => {
         </div>
       </div>
 
-      {/* Add / Edit Product Modal */}
       <Modal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => {
@@ -248,8 +243,8 @@ export const Products: React.FC = () => {
               type="text"
               className="form-input"
               required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.productName}
+              onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
             />
           </div>
 
@@ -309,8 +304,8 @@ export const Products: React.FC = () => {
                 min="0"
                 className="form-input"
                 required
-                value={formData.minStockAlert}
-                onChange={(e) => setFormData({ ...formData, minStockAlert: parseInt(e.target.value) || 0 })}
+                value={formData.minimumStock}
+                onChange={(e) => setFormData({ ...formData, minimumStock: parseInt(e.target.value) || 0 })}
               />
             </div>
           </div>
@@ -322,8 +317,8 @@ export const Products: React.FC = () => {
               className="form-input"
               required
               placeholder="e.g. Rack B-14, Warehouse 1"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              value={formData.warehouseLocation}
+              onChange={(e) => setFormData({ ...formData, warehouseLocation: e.target.value })}
             />
           </div>
 

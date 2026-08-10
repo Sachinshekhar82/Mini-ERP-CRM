@@ -14,12 +14,10 @@ export const Challans: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedChallan, setSelectedChallan] = useState<SalesChallan | null>(null);
 
-  // Create Challan Form State
   const [customerId, setCustomerId] = useState('');
   const [status, setStatus] = useState<'DRAFT' | 'CONFIRMED'>('DRAFT');
   const [notes, setNotes] = useState('');
@@ -78,7 +76,6 @@ export const Challans: React.FC = () => {
     setItems(newItems);
   };
 
-  // Calculate live grand total for modal form
   const calculateTotal = () => {
     let total = 0;
     items.forEach((item) => {
@@ -121,7 +118,7 @@ export const Challans: React.FC = () => {
 
   const handleConfirmChallan = async (challanId: string) => {
     try {
-      await api.put(`/challans/${challanId}/status`, { newStatus: 'CONFIRMED' });
+      await api.post(`/challans/${challanId}/confirm`);
       setToast({ message: 'Challan Confirmed! Stock levels updated.', type: 'success' });
       setIsDetailModalOpen(false);
       fetchData();
@@ -145,8 +142,6 @@ export const Challans: React.FC = () => {
 
   const handleDownloadPDF = (challanId: string, challanNumber: string) => {
     const pdfUrl = `/api/challans/${challanId}/pdf`;
-    
-    // Open inline PDF window or trigger browser download
     const link = document.createElement('a');
     link.href = pdfUrl;
     link.target = '_blank';
@@ -183,7 +178,6 @@ export const Challans: React.FC = () => {
         )}
       </div>
 
-      {/* Challans Data Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-container">
           <table>
@@ -216,7 +210,9 @@ export const Challans: React.FC = () => {
                 challans.map((c) => (
                   <tr key={c.id}>
                     <td style={{ fontWeight: 700, color: 'var(--primary)' }}>{c.challanNumber}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.customerName}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {c.customer?.businessName || c.customer?.customerName || c.customerName}
+                    </td>
                     <td>
                       <span
                         className={`badge ${
@@ -234,7 +230,9 @@ export const Challans: React.FC = () => {
                     <td style={{ fontWeight: 700, color: '#34D399' }}>
                       ₹{c.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{c.createdByName}</td>
+                    <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                      {typeof c.createdBy === 'object' ? c.createdBy?.name : c.createdBy || c.createdByName || 'Sales User'}
+                    </td>
                     <td style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                       {new Date(c.createdAt).toLocaleDateString('en-IN')}
                     </td>
@@ -264,7 +262,6 @@ export const Challans: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Sales Challan Modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -283,7 +280,7 @@ export const Challans: React.FC = () => {
               >
                 {customers.map((cust) => (
                   <option key={cust.id} value={cust.id}>
-                    {cust.businessName} ({cust.name})
+                    {cust.businessName} ({cust.customerName || (cust as any).name})
                   </option>
                 ))}
               </select>
@@ -302,7 +299,6 @@ export const Challans: React.FC = () => {
             </div>
           </div>
 
-          {/* Line Items Builder */}
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
               <label className="form-label" style={{ margin: 0 }}>
@@ -344,7 +340,7 @@ export const Challans: React.FC = () => {
                       >
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>
-                            {p.name} ({p.sku}) — ₹{p.unitPrice} [Stock: {p.currentStock}]
+                            {p.productName || (p as any).name} ({p.sku}) — ₹{p.unitPrice} [Stock: {p.currentStock}]
                           </option>
                         ))}
                       </select>
@@ -380,7 +376,6 @@ export const Challans: React.FC = () => {
             </div>
           </div>
 
-          {/* Total Summary Footer */}
           <div
             style={{
               padding: '1rem',
@@ -425,7 +420,6 @@ export const Challans: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Challan Detail & Invoice Preview Modal */}
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -434,7 +428,6 @@ export const Challans: React.FC = () => {
       >
         {selectedChallan && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Header Box */}
             <div
               style={{
                 padding: '1rem 1.25rem',
@@ -448,10 +441,10 @@ export const Challans: React.FC = () => {
             >
               <div>
                 <h4 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Customer: {selectedChallan.customerName}
+                  Customer: {selectedChallan.customer?.businessName || selectedChallan.customer?.customerName || selectedChallan.customerName}
                 </h4>
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Issued by {selectedChallan.createdByName} on {new Date(selectedChallan.createdAt).toLocaleDateString('en-IN')}
+                  Issued by {typeof selectedChallan.createdBy === 'object' ? selectedChallan.createdBy?.name : selectedChallan.createdByName || 'Sales User'} on {new Date(selectedChallan.createdAt).toLocaleDateString('en-IN')}
                 </p>
               </div>
 
@@ -472,7 +465,6 @@ export const Challans: React.FC = () => {
               </div>
             </div>
 
-            {/* Item Snapshots Table */}
             <div className="table-container">
               <table>
                 <thead>
@@ -487,10 +479,10 @@ export const Challans: React.FC = () => {
                   {selectedChallan.items.map((item) => (
                     <tr key={item.id}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{item.productName}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.sku}</div>
+                        <div style={{ fontWeight: 600 }}>{item.productNameSnapshot || (item as any).productName}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{item.skuSnapshot || (item as any).sku}</div>
                       </td>
-                      <td>₹{item.unitPrice.toFixed(2)}</td>
+                      <td>₹{(item.unitPriceSnapshot || (item as any).unitPrice || 0).toFixed(2)}</td>
                       <td>{item.quantity}</td>
                       <td style={{ textAlign: 'right', fontWeight: 600, color: '#34D399' }}>
                         ₹{item.totalPrice.toFixed(2)}
@@ -501,7 +493,6 @@ export const Challans: React.FC = () => {
               </table>
             </div>
 
-            {/* Total Footer */}
             <div
               style={{
                 display: 'flex',

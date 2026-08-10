@@ -31,13 +31,12 @@ const adjustStockSchema = z.object({
   }),
 });
 
-// Helper for Stock Adjustment
 async function performStockAdjustment(
   productId: string,
   quantity: number,
   movementType: 'IN' | 'OUT',
   reason: string,
-  userName: string,
+  userId: string,
   res: Response
 ) {
   const product = await prisma.product.findUnique({ where: { id: productId } });
@@ -48,7 +47,7 @@ async function performStockAdjustment(
   if (movementType === 'OUT' && product.currentStock < quantity) {
     return res.status(400).json({
       success: false,
-      message: `Insufficient stock for product '${product.name}'. Current stock: ${product.currentStock}, Requested reduction: ${quantity}`,
+      message: `Insufficient stock for product '${product.productName}'. Current stock: ${product.currentStock}, Requested reduction: ${quantity}`,
     });
   }
 
@@ -59,14 +58,13 @@ async function performStockAdjustment(
       where: { id: productId },
       data: { currentStock: newStock },
     }),
-    prisma.stockMovementLog.create({
+    prisma.stockMovement.create({
       data: {
         productId,
-        productName: product.name,
         quantityChanged: quantity,
         movementType,
         reason,
-        createdBy: userName,
+        createdById: userId,
       },
     }),
   ]);
@@ -77,7 +75,6 @@ async function performStockAdjustment(
   });
 }
 
-// GET /api/stock/logs & GET /api/inventory/movements
 const getMovementsHandler = async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -90,13 +87,17 @@ const getMovementsHandler = async (req: AuthRequest, res: Response) => {
     if (productId) whereClause.productId = productId;
 
     const [logs, total] = await Promise.all([
-      prisma.stockMovementLog.findMany({
+      prisma.stockMovement.findMany({
         where: whereClause,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        include: {
+          product: { select: { productName: true, sku: true } },
+          createdBy: { select: { name: true } },
+        },
       }),
-      prisma.stockMovementLog.count({ where: whereClause }),
+      prisma.stockMovement.count({ where: whereClause }),
     ]);
 
     return res.json({
@@ -112,7 +113,6 @@ const getMovementsHandler = async (req: AuthRequest, res: Response) => {
 router.get('/logs', authenticateJWT, getMovementsHandler);
 router.get('/movements', authenticateJWT, getMovementsHandler);
 
-// POST /api/inventory/stock-in
 router.post(
   '/stock-in',
   authenticateJWT,
@@ -120,11 +120,10 @@ router.post(
   validateRequest(stockInSchema),
   async (req: AuthRequest, res: Response) => {
     const { productId, quantity, reason } = req.body;
-    return performStockAdjustment(productId, quantity, 'IN', reason, req.user?.name || 'Warehouse', res);
+    return performStockAdjustment(productId, quantity, 'IN', reason, req.user!.id, res);
   }
 );
 
-// POST /api/inventory/stock-out
 router.post(
   '/stock-out',
   authenticateJWT,
@@ -132,11 +131,10 @@ router.post(
   validateRequest(stockOutSchema),
   async (req: AuthRequest, res: Response) => {
     const { productId, quantity, reason } = req.body;
-    return performStockAdjustment(productId, quantity, 'OUT', reason, req.user?.name || 'Warehouse', res);
+    return performStockAdjustment(productId, quantity, 'OUT', reason, req.user!.id, res);
   }
 );
 
-// POST /api/stock/adjust
 router.post(
   '/adjust',
   authenticateJWT,
@@ -144,7 +142,7 @@ router.post(
   validateRequest(adjustStockSchema),
   async (req: AuthRequest, res: Response) => {
     const { productId, quantity, movementType, reason } = req.body;
-    return performStockAdjustment(productId, quantity, movementType, reason, req.user?.name || 'Warehouse', res);
+    return performStockAdjustment(productId, quantity, movementType, reason, req.user!.id, res);
   }
 );
 

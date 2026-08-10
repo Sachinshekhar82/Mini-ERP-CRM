@@ -28,7 +28,7 @@ async function generateChallanNumber(): Promise<string> {
   return `CH-${year}-${nextNum}`;
 }
 
-// GET /api/challans (List Challans with filtering & pagination)
+// GET /api/challans (List Challans)
 router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
@@ -42,8 +42,8 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
     if (search) {
       whereClause.OR = [
         { challanNumber: { contains: search } },
-        { customerName: { contains: search } },
-        { createdByName: { contains: search } },
+        { customer: { businessName: { contains: search } } },
+        { customer: { customerName: { contains: search } } },
       ];
     }
     if (status) whereClause.status = status;
@@ -55,7 +55,8 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
         skip,
         take: limit,
         include: {
-          customer: { select: { id: true, name: true, businessName: true, email: true, mobile: true } },
+          customer: { select: { id: true, customerName: true, businessName: true, email: true, mobile: true } },
+          createdBy: { select: { name: true } },
           items: true,
         },
       }),
@@ -72,7 +73,7 @@ router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// GET /api/challans/:id (Get Single Challan Detail)
+// GET /api/challans/:id
 router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const challan = await prisma.salesChallan.findUnique({
@@ -94,7 +95,7 @@ router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST /api/challans (Create Sales Challan)
+// POST /api/challans
 router.post(
   '/',
   authenticateJWT,
@@ -104,7 +105,6 @@ router.post(
     try {
       const { customerId, status, notes, items } = req.body;
       const userId = req.user!.id;
-      const userName = req.user!.name;
 
       const customer = await prisma.customer.findUnique({ where: { id: customerId } });
       if (!customer) {
@@ -133,7 +133,7 @@ router.post(
           if (product.currentStock < item.quantity) {
             return res.status(400).json({
               success: false,
-              message: `Cannot confirm challan. Insufficient stock for product '${product.name}' (${product.sku}). Available stock: ${product.currentStock}, Requested quantity: ${item.quantity}`,
+              message: `Cannot confirm challan. Insufficient stock for product '${product.productName}' (${product.sku}). Available stock: ${product.currentStock}, Requested quantity: ${item.quantity}`,
             });
           }
         }
@@ -150,9 +150,9 @@ router.post(
 
         return {
           productId: product.id,
-          productName: product.name,
-          sku: product.sku,
-          unitPrice: product.unitPrice,
+          productNameSnapshot: product.productName,
+          skuSnapshot: product.sku,
+          unitPriceSnapshot: product.unitPrice,
           quantity: item.quantity,
           totalPrice: lineTotal,
         };
@@ -165,12 +165,10 @@ router.post(
           data: {
             challanNumber,
             customerId: customer.id,
-            customerName: customer.businessName || customer.name,
             totalAmount,
             totalQuantity,
             status,
             createdById: userId,
-            createdByName: userName,
             notes,
             items: {
               create: challanItemsData,
@@ -189,14 +187,13 @@ router.post(
               data: { currentStock: updatedStock },
             });
 
-            await tx.stockMovementLog.create({
+            await tx.stockMovement.create({
               data: {
                 productId: product.id,
-                productName: product.name,
                 quantityChanged: item.quantity,
                 movementType: 'OUT',
                 reason: `Sales Challan Issued #${challanNumber}`,
-                createdBy: userName,
+                createdById: userId,
               },
             });
           }
@@ -213,7 +210,7 @@ router.post(
 );
 
 // Helper for Confirming Challan
-async function confirmChallanAction(challanId: string, userName: string, res: Response) {
+async function confirmChallanAction(challanId: string, userId: string, res: Response) {
   const existingChallan = await prisma.salesChallan.findUnique({
     where: { id: challanId },
     include: { items: { include: { product: true } } },
@@ -237,17 +234,15 @@ async function confirmChallanAction(challanId: string, userName: string, res: Re
     });
   }
 
-  // Stock check for ALL items
   for (const item of existingChallan.items) {
     if (item.product.currentStock < item.quantity) {
       return res.status(400).json({
         success: false,
-        message: `Cannot confirm challan. Insufficient stock for product '${item.productName}' (${item.sku}). Available stock: ${item.product.currentStock}, Requested quantity: ${item.quantity}`,
+        message: `Cannot confirm challan. Insufficient stock for product '${item.productNameSnapshot}' (${item.skuSnapshot}). Available stock: ${item.product.currentStock}, Requested quantity: ${item.quantity}`,
       });
     }
   }
 
-  // Atomic database transaction
   const updatedChallan = await prisma.$transaction(async (tx) => {
     const updated = await tx.salesChallan.update({
       where: { id: challanId },
@@ -262,14 +257,13 @@ async function confirmChallanAction(challanId: string, userName: string, res: Re
         data: { currentStock: newStock },
       });
 
-      await tx.stockMovementLog.create({
+      await tx.stockMovement.create({
         data: {
           productId: item.productId,
-          productName: item.productName,
           quantityChanged: item.quantity,
           movementType: 'OUT',
           reason: `Confirmed Sales Challan #${existingChallan.challanNumber}`,
-          createdBy: userName,
+          createdById: userId,
         },
       });
     }
@@ -280,17 +274,15 @@ async function confirmChallanAction(challanId: string, userName: string, res: Re
   return res.json({ success: true, data: updatedChallan });
 }
 
-// POST /api/challans/:id/confirm
 router.post(
   '/:id/confirm',
   authenticateJWT,
   requireRole('ADMIN', 'SALES', 'ACCOUNTS'),
   async (req: AuthRequest, res: Response) => {
-    return confirmChallanAction(req.params.id, req.user!.name, res);
+    return confirmChallanAction(req.params.id, req.user!.id, res);
   }
 );
 
-// POST /api/challans/:id/cancel (Cancel challan without deducting stock)
 router.post(
   '/:id/cancel',
   authenticateJWT,
@@ -324,33 +316,13 @@ router.post(
   }
 );
 
-// PUT /api/challans/:id/status (Legacy status update handler)
-router.put(
-  '/:id/status',
-  authenticateJWT,
-  requireRole('ADMIN', 'SALES', 'ACCOUNTS'),
-  async (req: AuthRequest, res: Response) => {
-    const { newStatus } = req.body;
-    if (newStatus === 'CONFIRMED') {
-      return confirmChallanAction(req.params.id, req.user!.name, res);
-    } else if (newStatus === 'CANCELLED') {
-      const cancelledChallan = await prisma.salesChallan.update({
-        where: { id: req.params.id },
-        data: { status: 'CANCELLED' },
-      });
-      return res.json({ success: true, data: cancelledChallan });
-    }
-    return res.status(400).json({ success: false, message: 'Invalid status' });
-  }
-);
-
-// GET /api/challans/:id/pdf (Export Invoice as PDF)
 router.get('/:id/pdf', authenticateJWT, async (req: AuthRequest, res: Response) => {
   try {
     const challan = await prisma.salesChallan.findUnique({
       where: { id: req.params.id },
       include: {
         customer: true,
+        createdBy: true,
         items: true,
       },
     });
@@ -363,16 +335,16 @@ router.get('/:id/pdf', authenticateJWT, async (req: AuthRequest, res: Response) 
       challanNumber: challan.challanNumber,
       createdAt: challan.createdAt,
       status: challan.status,
-      customerName: challan.customer.businessName || challan.customer.name,
+      customerName: challan.customer.businessName || challan.customer.customerName,
       customerAddress: challan.customer.address,
       customerGst: challan.customer.gstNumber || undefined,
-      createdByName: challan.createdByName,
+      createdByName: challan.createdBy.name,
       totalAmount: challan.totalAmount,
       totalQuantity: challan.totalQuantity,
       items: challan.items.map((i) => ({
-        productName: i.productName,
-        sku: i.sku,
-        unitPrice: i.unitPrice,
+        productName: i.productNameSnapshot,
+        sku: i.skuSnapshot,
+        unitPrice: i.unitPriceSnapshot,
         quantity: i.quantity,
         totalPrice: i.totalPrice,
       })),

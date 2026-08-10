@@ -23,7 +23,6 @@ export const Customers: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -31,14 +30,13 @@ export const Customers: React.FC = () => {
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  // Form State
   const [formData, setFormData] = useState({
-    name: '',
+    customerName: '',
     mobile: '',
     email: '',
     businessName: '',
     gstNumber: '',
-    type: 'RETAIL',
+    customerType: 'RETAIL',
     address: '',
     status: 'LEAD',
     followUpDate: '',
@@ -55,7 +53,7 @@ export const Customers: React.FC = () => {
       const params: any = {};
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
-      if (typeFilter) params.type = typeFilter;
+      if (typeFilter) params.customerType = typeFilter;
 
       const res = await api.get('/customers', { params });
       setCustomers(res.data.data);
@@ -72,12 +70,12 @@ export const Customers: React.FC = () => {
 
   const handleOpenAdd = () => {
     setFormData({
-      name: '',
+      customerName: '',
       mobile: '',
       email: '',
       businessName: '',
       gstNumber: '',
-      type: 'RETAIL',
+      customerType: 'RETAIL',
       address: '',
       status: 'LEAD',
       followUpDate: '',
@@ -89,12 +87,12 @@ export const Customers: React.FC = () => {
   const handleOpenEdit = (cust: Customer) => {
     setSelectedCustomer(cust);
     setFormData({
-      name: cust.name,
+      customerName: cust.customerName || (cust as any).name || '',
       mobile: cust.mobile,
       email: cust.email,
       businessName: cust.businessName,
       gstNumber: cust.gstNumber || '',
-      type: cust.type,
+      customerType: cust.customerType || (cust as any).type || 'RETAIL',
       address: cust.address,
       status: cust.status,
       followUpDate: cust.followUpDate || '',
@@ -145,10 +143,9 @@ export const Customers: React.FC = () => {
     if (!selectedCustomer || !noteText.trim()) return;
 
     try {
-      await api.post(`/customers/${selectedCustomer.id}/notes`, { note: noteText });
+      await api.post(`/customers/${selectedCustomer.id}/follow-ups`, { note: noteText });
       setToast({ message: 'Follow-up note recorded', type: 'success' });
       setIsNoteModalOpen(false);
-      // Refresh detail modal if open
       if (isDetailModalOpen) {
         handleOpenDetail(selectedCustomer);
       }
@@ -162,10 +159,8 @@ export const Customers: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       <Toast message={toast?.message || null} type={toast?.type} onClose={() => setToast(null)} />
 
-      {/* Header Actions */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '300px' }}>
-          {/* Search Box */}
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
@@ -178,7 +173,6 @@ export const Customers: React.FC = () => {
             />
           </div>
 
-          {/* Type Filter */}
           <select
             className="form-select"
             style={{ width: '160px' }}
@@ -191,7 +185,6 @@ export const Customers: React.FC = () => {
             <option value="DISTRIBUTOR">Distributor</option>
           </select>
 
-          {/* Status Filter */}
           <select
             className="form-select"
             style={{ width: '160px' }}
@@ -213,7 +206,6 @@ export const Customers: React.FC = () => {
         )}
       </div>
 
-      {/* Customer Data Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="table-container">
           <table>
@@ -244,7 +236,9 @@ export const Customers: React.FC = () => {
                 customers.map((cust) => (
                   <tr key={cust.id}>
                     <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{cust.name}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {cust.customerName || (cust as any).name}
+                      </div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Building size={12} /> {cust.businessName}
                       </div>
@@ -254,7 +248,7 @@ export const Customers: React.FC = () => {
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cust.mobile}</div>
                     </td>
                     <td>
-                      <span className="badge badge-primary">{cust.type}</span>
+                      <span className="badge badge-primary">{cust.customerType || (cust as any).type}</span>
                     </td>
                     <td>
                       <span
@@ -313,7 +307,6 @@ export const Customers: React.FC = () => {
         </div>
       </div>
 
-      {/* Add / Edit Customer Modal */}
       <Modal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => {
@@ -330,8 +323,8 @@ export const Customers: React.FC = () => {
                 type="text"
                 className="form-input"
                 required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.customerName}
+                onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
               />
             </div>
             <div className="form-group">
@@ -374,8 +367,8 @@ export const Customers: React.FC = () => {
               <label className="form-label">Customer Type</label>
               <select
                 className="form-select"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                value={formData.customerType}
+                onChange={(e) => setFormData({ ...formData, customerType: e.target.value as any })}
               >
                 <option value="RETAIL">Retail</option>
                 <option value="WHOLESALE">Wholesale</option>
@@ -459,7 +452,6 @@ export const Customers: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Customer Detail Profile Page Modal */}
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
@@ -468,7 +460,6 @@ export const Customers: React.FC = () => {
       >
         {selectedCustomer && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            {/* Header Profile Box */}
             <div
               style={{
                 padding: '1.25rem',
@@ -482,7 +473,7 @@ export const Customers: React.FC = () => {
             >
               <div>
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {selectedCustomer.name}
+                  {selectedCustomer.customerName || (selectedCustomer as any).name}
                 </h3>
                 <p style={{ color: 'var(--primary)', fontWeight: 500, fontSize: '0.875rem' }}>
                   {selectedCustomer.businessName}
@@ -498,12 +489,11 @@ export const Customers: React.FC = () => {
                   {selectedCustomer.status}
                 </span>
                 <div style={{ marginTop: '0.375rem' }}>
-                  <span className="badge badge-primary">{selectedCustomer.type}</span>
+                  <span className="badge badge-primary">{selectedCustomer.customerType || (selectedCustomer as any).type}</span>
                 </div>
               </div>
             </div>
 
-            {/* Contact Details Grid */}
             <div className="grid grid-cols-2" style={{ fontSize: '0.875rem' }}>
               <div>
                 <span style={{ color: 'var(--text-muted)' }}>Email:</span>
@@ -525,7 +515,6 @@ export const Customers: React.FC = () => {
               </div>
             </div>
 
-            {/* Follow-up Notes Timeline */}
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                 <h4 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
@@ -540,12 +529,12 @@ export const Customers: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '250px', overflowY: 'auto' }}>
-                {!selectedCustomer.followUpNotes || selectedCustomer.followUpNotes.length === 0 ? (
+                {!selectedCustomer.followUps || selectedCustomer.followUps.length === 0 ? (
                   <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                     No follow-up notes recorded yet.
                   </p>
                 ) : (
-                  selectedCustomer.followUpNotes.map((n) => (
+                  selectedCustomer.followUps.map((n) => (
                     <div
                       key={n.id}
                       style={{
@@ -557,7 +546,7 @@ export const Customers: React.FC = () => {
                     >
                       <p style={{ fontSize: '0.875rem', color: 'var(--text-primary)' }}>{n.note}</p>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                        Added by {n.createdBy} on {new Date(n.createdAt).toLocaleDateString('en-IN')}
+                        Added by {n.createdBy?.name || 'Sales User'} on {new Date(n.createdAt).toLocaleDateString('en-IN')}
                       </p>
                     </div>
                   ))
@@ -568,11 +557,10 @@ export const Customers: React.FC = () => {
         )}
       </Modal>
 
-      {/* Add Note Modal */}
       <Modal
         isOpen={isNoteModalOpen}
         onClose={() => setIsNoteModalOpen(false)}
-        title={`Add CRM Follow-up Note for ${selectedCustomer?.name || ''}`}
+        title={`Add CRM Follow-up Note for ${selectedCustomer?.customerName || (selectedCustomer as any)?.name || ''}`}
       >
         <form onSubmit={handleAddFollowUpNote}>
           <div className="form-group">

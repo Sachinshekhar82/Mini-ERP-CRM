@@ -41,7 +41,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-      {/* Stock Warning Alert Banner if low stock items exist */}
       {stats.products.lowStockCount > 0 && (
         <div className="alert-banner alert-warning">
           <AlertTriangle size={22} color="#F59E0B" />
@@ -53,7 +52,6 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Metric Cards Row */}
       <div className="grid grid-cols-4">
         <StatCard
           title="Active Customers"
@@ -89,9 +87,7 @@ export const Dashboard: React.FC = () => {
         />
       </div>
 
-      {/* Two Column Grid: Low Stock Alert Items & Recent Activity */}
       <div className="grid grid-cols-2">
-        {/* Low Stock Items Widget */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -122,7 +118,7 @@ export const Dashboard: React.FC = () => {
                   stats.products.lowStockAlerts.map((prod) => (
                     <tr key={prod.id}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{prod.name}</div>
+                        <div style={{ fontWeight: 600 }}>{prod.productName || (prod as any).name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{prod.sku}</div>
                       </td>
                       <td>
@@ -130,8 +126,8 @@ export const Dashboard: React.FC = () => {
                           {prod.currentStock} Units
                         </span>
                       </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{prod.minStockAlert}</td>
-                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{prod.location}</td>
+                      <td style={{ color: 'var(--text-secondary)' }}>{prod.minimumStock || (prod as any).minStockAlert}</td>
+                      <td style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>{prod.warehouseLocation || (prod as any).location}</td>
                     </tr>
                   ))
                 )}
@@ -140,7 +136,6 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Stock Movement Feed */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
