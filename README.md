@@ -1,225 +1,399 @@
 # Mini ERP + CRM Operations Portal
 
-> **Full Stack Developer Case Study Assignment**  
-> A complete, production-grade Mini ERP & Customer CRM System for wholesale and distribution enterprises. Built with Node.js, Express, TypeScript, Prisma ORM, React 18, Vite, Lucide Icons, and styled with a modern dark glassmorphism aesthetic.
+A production-quality full-stack **Mini ERP + CRM Operations Portal** built for a wholesale/distribution business. The platform manages customer relationships, product inventories, stock movement audit trails, and multi-item sales challans with atomic stock deduction and historical price snapshot protection.
+
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Mini--ERP--CRM-blue?logo=github)](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)
+[![Stack](https://img.shields.io/badge/Stack-Node.js%20%7C%20React%20%7C%20TypeScript%20%7C%20Prisma-indigo)]()
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)]()
 
 ---
 
-## 🔗 Repository & Live Deployment Links
-
-- **GitHub Repository**: [https://github.com/Sachinshekhar82/Mini-ERP-CRM.git](https://github.com/Sachinshekhar82/Mini-ERP-CRM.git)
-- **Live Frontend (Vercel)**: `https://mini-erp-crm-frontend.vercel.app` *(Optional deployment)*
-- **Live Backend API (Render)**: `https://mini-erp-crm-api.onrender.com` *(Optional deployment)*
-
----
-
-## 🔑 Test Login Credentials (Role-Based Access Control)
-
-The database includes an automatic seed script with pre-configured accounts for all **4 required roles**. All passwords are set to `password123`.
-
-| Role | Email Address | Password | Permissions & Capabilities |
-| :--- | :--- | :--- | :--- |
-| 👑 **Admin** | `admin@company.com` | `password123` | Full access across all modules (Customers, Products, Stock Adjustments, Sales Challans). |
-| 💼 **Sales** | `sales@company.com` | `password123` | Customer CRM management, adding follow-up notes, generating & confirming Sales Challans. |
-| 📦 **Warehouse** | `warehouse@company.com` | `password123` | Inventory management, product adding/editing, stock level alerts, logging manual stock IN/OUT. |
-| 📊 **Accounts** | `accounts@company.com` | `password123` | View customer records, view sales challans, confirm draft challans, download PDF invoices. |
-
-> 💡 *Note: The login page includes a **1-click Quick Login Bar** so you can instantly log in as any role without typing!*
-
----
-
-## 🚀 Key Modules & Business Logic Highlights
-
-### 1. Authentication & RBAC Module
-- **JWT-Based Authentication**: Secure token generation with bcrypt password hashing (`bcryptjs`).
-- **Role Guards**: Backend API middleware (`requireRole('ADMIN', 'SALES')`) ensuring strict endpoint authorization.
-
-### 2. Customer CRM Module
-- **Customer Fields**: Name, Mobile, Email, Business Name, GSTIN (optional), Type (`Retail`, `Wholesale`, `Distributor`), Address, Status (`Lead`, `Active`, `Inactive`), Follow-up Date, Notes.
-- **Search & Filtering**: Search by name, business, email, phone number + filter by status or customer type.
-- **CRM Timeline**: Add follow-up notes to track customer interaction history.
-
-### 3. Product & Inventory Module
-- **Product Fields**: Product Name, SKU/Code, Category, Unit Price, Current Stock, Minimum Stock Alert Qty, Warehouse Location, Image URL.
-- **Stock Alert System**: Real-time warnings & badges when `currentStock <= minStockAlert`.
-- **Stock Movement Log Audit**: Complete tracking table recording Product, Qty Changed, Movement Type (`IN` / `OUT`), Reason (PO receive, sales challan, return), Created By user, and Timestamp.
-
-### 4. Sales Challan Module & Crucial Business Rules
-- **Automatic Numbering**: Auto-generated sequential challan numbers (`CH-YYYY-XXXX`).
-- **Snapshot Data Protection**: Challans store a **snapshot of product name, SKU, and unit price** at the moment of creation. If product prices or names change in the catalog later, historical sales challans remain 100% intact.
-- **Atomic Stock Deduction**: When a Challan status changes to `CONFIRMED`, current stock is reduced automatically and an `OUT` Stock Movement Log is created in a database transaction.
-- **Negative Stock Prevention**: Stock validation checks prevent confirmation if stock is insufficient. The API throws an HTTP 400 error (`Insufficient stock for product X. Available: Y, Requested: Z`).
-- **PDF Invoice Export**: Integrated PDF generator (`pdfkit`) producing official, printable PDF tax invoices with 1 click!
+## 📋 Table of Contents
+1. [Project Overview](#1-project-overview)
+2. [Business Problem](#2-business-problem)
+3. [Features](#3-features)
+4. [User Roles & Permissions](#4-user-roles--permissions)
+5. [Technology Stack](#5-technology-stack)
+6. [System Architecture](#6-system-architecture)
+7. [Architecture Diagram](#7-architecture-diagram)
+8. [Folder Structure](#8-folder-structure)
+9. [Database Design](#9-database-design)
+10. [Business Logic](#10-business-logic)
+11. [Challan Confirmation Flow](#11-challan-confirmation-flow)
+12. [API Documentation](#12-api-documentation)
+13. [Authentication](#13-authentication)
+14. [Environment Variables](#14-environment-variables)
+15. [Local Setup](#15-local-setup)
+16. [PostgreSQL Setup](#16-postgresql-setup)
+17. [Prisma Migration](#17-prisma-migration)
+18. [Seed Database](#18-seed-database)
+19. [Start Backend](#19-start-backend)
+20. [Start Frontend](#20-start-frontend)
+21. [Demo Credentials](#21-demo-credentials)
+22. [Postman Collection](#22-postman-collection)
+23. [Deployment Guide](#23-deployment-guide)
+24. [Frontend Deployment](#24-frontend-deployment)
+25. [Backend Deployment](#25-backend-deployment)
+26. [Database Deployment](#26-database-deployment)
+27. [Security Considerations](#27-security-considerations)
+28. [Assumptions](#28-assumptions)
+29. [Known Limitations](#29-known-limitations)
+30. [Future Improvements](#30-future-improvements)
+31. [Screenshots](#31-screenshots)
+32. [Submission Checklist](#32-submission-checklist)
 
 ---
 
-## 📁 Repository Structure
+## 1. Project Overview
+The **Mini ERP + CRM Operations Portal** provides an integrated operations suite for wholesale distributors to eliminate manual spreadsheet tracking, prevent inventory stockouts, track customer follow-up histories, and issue formal sales challans with atomic stock deduction guarantees.
 
+---
+
+## 2. Business Problem
+Wholesale distributors frequently face operational risks:
+- **Corrupted Historical Invoices**: When catalog prices change, old quotes or invoices mistakenly recalculate at current prices.
+- **Negative Stock & Over-selling**: Sales reps issue challans for products out of stock, leading to delayed orders and unfulfilled commitments.
+- **Partial Confirmation Vulnerabilities**: Incomplete transactions where 1 product is deducted but another fails, leaving inventory in an inconsistent state.
+- **Unverified Role Actions**: Non-authorized staff modifying inventory counts or deleting customer records.
+
+---
+
+## 3. Features
+- **JWT & Role-Based Authorization**: Enforces 4 distinct internal roles (`ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`).
+- **Customer CRM**: Multi-field search (name, business, email, phone, GSTIN), filters, pagination, and a **chronological follow-up timeline** storing notes separately.
+- **Product & Inventory Management**: Catalog search, low-stock threshold alerts (`currentStock <= minimumStock`), unique SKU validation, and safe update rules stripping arbitrary stock edits.
+- **Stock Movement Audit Trail**: Manual Stock IN / Stock OUT forms with atomic `prisma.$transaction()` tracking and reason logs.
+- **Sales Challans & PDF Invoices**: Product snapshot fields (`productNameSnapshot`, `skuSnapshot`, `unitPriceSnapshot`), dynamic line items, auto-generated numbers (`CH-2026-XXXX`), and instant PDF downloads.
+- **Atomic Stock Deduction**: Single-transaction multi-item stock check; if **any** product lacks stock, the entire transaction rolls back cleanly.
+- **Operations Dashboard**: Real-time KPI cards, low-stock alert lists, and recent activity feeds.
+
+---
+
+## 4. User Roles & Permissions
+
+| Role | Access Permissions |
+| :--- | :--- |
+| **👑 ADMIN** | Full administrative access to all modules, system configuration, and User Account Management (`/users`). |
+| **💼 SALES** | Customer CRM, follow-up notes, sales challan creation/confirmation, product catalog reading. |
+| **📦 WAREHOUSE** | Product catalog management, manual stock IN/OUT adjustments, stock movement audit logs, challan reading. |
+| **📊 ACCOUNTS** | Customer reading, product reading, sales challan viewing, draft confirmation, PDF invoice download, dashboard reports. |
+
+---
+
+## 5. Technology Stack
+- **Frontend**: React 18, TypeScript, Vite, React Router DOM v6, Axios, Lucide React, Vanilla CSS Tokens.
+- **Backend**: Node.js, Express.js, TypeScript, Prisma ORM, Zod, BcryptJS, JSONWebToken, Helmet, Morgan, PDFKit.
+- **Database**: PostgreSQL (Production) / SQLite (Development zero-config).
+- **API Testing**: Postman Collection (Collection variables & auto-JWT capture scripts).
+
+---
+
+## 6. System Architecture
+The application adheres to a decoupled RESTful architecture:
 ```
-Mini-ERP-CRM/
-├── backend/                  # Node.js + Express + TypeScript API Server
+┌─────────────────────────────────────────────────────────┐
+│              React 18 + Vite Frontend App               │
+│      (Protected Routes, Auth Context, Admin UI)         │
+└────────────────────────────┬────────────────────────────┘
+                             │ Axios HTTP / JWT Bearer
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│               Express.js REST API Server                │
+│ (Helmet Security, Morgan Logging, Zod, Auth Middleware) │
+└────────────────────────────┬────────────────────────────┘
+                             │ Prisma Client
+                             ▼
+┌─────────────────────────────────────────────────────────┐
+│             PostgreSQL / SQLite Database                │
+│    (Models: User, Customer, Product, SalesChallan...)   │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Architecture Diagram
+
+```mermaid
+graph TD
+    User([User Browser]) -->|HTTP Requests| ReactApp[React 18 SPA]
+    ReactApp -->|REST API + Bearer JWT| ExpressServer[Express.js Server]
+    ExpressServer -->|Zod Validation| Validators[Request Validators]
+    Validators -->|Auth & Role Check| AuthMiddleware[RBAC Middleware]
+    AuthMiddleware -->|Service Layer| Services[Business Services]
+    Services -->|Prisma $transaction| PrismaORM[Prisma ORM]
+    PrismaORM -->|SQL Queries| Database[(PostgreSQL DB)]
+```
+
+---
+
+## 8. Folder Structure
+```
+mini-erp-crm/
+├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma     # Prisma ORM Schema (SQLite local zero-config / Postgres compatible)
-│   │   └── seed.ts           # Automatic database seed script with test accounts & demo data
+│   │   ├── schema.prisma
+│   │   └── seed.ts
 │   ├── src/
-│   │   ├── config/           # Prisma client singleton
-│   │   ├── controllers/      # API Controllers
-│   │   ├── middleware/       # JWT Auth, Role Guard, Zod Validation, Error Handler
-│   │   ├── routes/           # REST Router modules (auth, customers, products, stock, challans, dashboard)
-│   │   ├── utils/            # PDFKit Invoice builder
-│   │   └── index.ts          # Express application entry point
-│   ├── Dockerfile            # Container image builder for backend
-│   └── package.json
-├── frontend/                 # React 18 + Vite + TypeScript Single Page App
+│   │   ├── config/ (env.ts, prisma.ts)
+│   │   ├── controllers/ (auth, customer, product, inventory, challan, dashboard)
+│   │   ├── middleware/ (auth, errorHandler, validate)
+│   │   ├── routes/ (auth, users, customers, products, stock, challans, dashboard)
+│   │   ├── services/ (auth, customer, product, inventory, challan, dashboard)
+│   │   ├── types/ (auth.ts)
+│   │   ├── utils/ (jwt.ts, password.ts, pdfGenerator.ts)
+│   │   ├── validators/ (auth, customer, product, inventory, challan)
+│   │   ├── app.ts
+│   │   ├── server.ts
+│   │   └── testMasterE2E.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/
 │   ├── src/
-│   │   ├── components/       # Reusable UI (Sidebar, Navbar, Modal, StatCard, Toast)
-│   │   ├── context/          # Auth Context & JWT Session state
-│   │   ├── pages/            # Login, Dashboard, Customers, Products, StockLogs, Challans
-│   │   ├── services/         # Axios API Client
-│   │   ├── types/            # TypeScript interfaces
-│   │   └── App.tsx           # React Router DOM configuration
-│   ├── Dockerfile            # Production Nginx SPA Docker builder
-│   └── package.json
-├── .github/
-│   └── workflows/
-│       └── ci.yml            # GitHub Actions CI workflow for linting & build verification
-├── docker-compose.yml        # Orchestration for Backend + Frontend + PostgreSQL
-├── postman_collection.json   # Exported Postman collection for API testing
-└── README.md                 # Complete documentation
+│   │   ├── components/ (Navbar, Sidebar, Modal, Toast, StatCard)
+│   │   ├── context/ (AuthContext.tsx)
+│   │   ├── pages/ (Login, Dashboard, Customers, Products, StockLogs, Challans, Profile, Users, NotFound)
+│   │   ├── services/ (api.ts)
+│   │   ├── types/ (index.ts)
+│   │   ├── App.tsx
+│   │   ├── index.css
+│   │   └── main.tsx
+│   ├── package.json
+│   └── vite.config.ts
+├── postman/
+│   └── Mini-ERP-CRM.postman_collection.json
+└── README.md
 ```
 
 ---
 
-## 🛠️ Step-by-Step Local Setup Instructions
+## 9. Database Design
 
-### Prerequisites
-- Node.js `v18.x` or `v20.x` installed
-- Git installed
+### Key Models:
+- **`User`**: `id`, `name`, `email` (unique), `password`, `role` (`ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`).
+- **`Customer`**: `id`, `customerName`, `mobile`, `email`, `businessName`, `gstNumber`, `customerType`, `address`, `status`, `followUpDate`, `notes`.
+- **`CustomerFollowUp`**: `id`, `customerId`, `note`, `createdById`, `createdAt` *(Cascade delete)*.
+- **`Product`**: `id`, `productName`, `sku` (unique), `category`, `unitPrice`, `currentStock`, `minimumStock`, `warehouseLocation`.
+- **`StockMovement`**: `id`, `productId`, `quantityChanged`, `movementType` (`IN`, `OUT`), `reason`, `createdById`, `createdAt`.
+- **`SalesChallan`**: `id`, `challanNumber` (unique), `customerId`, `totalQuantity`, `totalAmount`, `status` (`DRAFT`, `CONFIRMED`, `CANCELLED`), `notes`, `createdById`.
+- **`SalesChallanItem`**: `id`, `challanId`, `productId`, `productNameSnapshot`, `skuSnapshot`, `unitPriceSnapshot`, `quantity`, `totalPrice`.
 
-### 1. Clone the Repository
+---
+
+## 10. Business Logic
+1. **Product Price & Name Snapshot**: `SalesChallanItem` copies `productNameSnapshot`, `skuSnapshot`, and `unitPriceSnapshot` upon creation. Future catalog edits will never corrupt historical quotes.
+2. **Safe Product Edits**: `PUT /api/products/:id` strips direct `currentStock` mutations. Stock levels must be modified through audited stock-in, stock-out, or challan confirmation flows.
+3. **Separate Follow-up Timeline**: Customer follow-up notes are saved as individual relational records (`CustomerFollowUp`), leaving original registration notes intact.
+
+---
+
+## 11. Challan Confirmation Flow
+
+When `POST /api/challans/:id/confirm` is invoked:
+1. Opens a single `prisma.$transaction()` block.
+2. Reads the challan, customer, and all line item requested quantities.
+3. Performs a stock pre-verification check for **every line item**.
+4. **Atomic Rollback Guarantee**: If even 1 product has insufficient stock (e.g. Product A = 5 available/requested 2, Product B = 1 available/requested 5):
+   - ❌ Transaction aborts and rolls back completely.
+   - ❌ **0 stock is reduced**.
+   - ❌ **0 `StockMovement` logs are created**.
+   - ❌ Challan remains in **`DRAFT`** status.
+   - ❌ Returns **HTTP 400 Bad Request** explaining the exact missing item.
+5. If all items pass, stock is reduced, `OUT` audit logs are created, status becomes **`CONFIRMED`**, and the transaction commits.
+
+---
+
+## 12. API Documentation
+
+| Method | Endpoint | Allowed Roles | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Public | Authenticates credentials, returns JWT & user profile. |
+| `GET` | `/api/auth/me` | All Roles | Returns logged-in user profile. |
+| `GET` | `/api/users` | Admin Only | Lists employee user accounts. |
+| `POST` | `/api/users` | Admin Only | Creates new employee account with assigned role. |
+| `GET` | `/api/customers` | Admin, Sales, Accounts | Lists customers with search, status/type filters, and pagination. |
+| `POST` | `/api/customers` | Admin, Sales | Adds new customer (checks duplicate email/mobile). |
+| `GET` | `/api/customers/:id` | Admin, Sales, Accounts | Customer profile with follow-up timeline & sales history. |
+| `POST` | `/api/customers/:id/follow-ups` | Admin, Sales | Appends a follow-up note to customer timeline. |
+| `GET` | `/api/products` | All Roles | Catalog search, low stock alert filter (`lowStock=true`). |
+| `POST` | `/api/products` | Admin, Warehouse | Adds product with initial stock movement log. |
+| `POST` | `/api/inventory/stock-in` | Admin, Warehouse | Atomic stock increment & `IN` movement log. |
+| `POST` | `/api/inventory/stock-out` | Admin, Warehouse | Atomic stock reduction & `OUT` movement log. |
+| `GET` | `/api/inventory/movements` | Admin, Warehouse | System-wide stock movement audit log trail. |
+| `POST` | `/api/challans` | Admin, Sales | Generates draft sales challan with snapshot fields. |
+| `POST` | `/api/challans/:id/confirm` | Admin, Sales, Accounts | Atomic confirmation & stock deduction. |
+| `GET` | `/api/challans/:id/pdf` | All Roles | Generates printable PDF invoice. |
+| `GET` | `/api/dashboard/stats` | All Roles | Real-time KPI metrics and activity feeds. |
+
+---
+
+## 13. Authentication
+Authentication is powered by JWT bearer tokens stored in `localStorage`. Requests transmit `Authorization: Bearer <token>`.
+- Missing/invalid tokens return **HTTP 401 Unauthenticated**.
+- Role guard failures return **HTTP 403 Forbidden**.
+
+---
+
+## 14. Environment Variables
+
+Create `backend/.env`:
+```env
+PORT=5000
+NODE_ENV=development
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="mini_erp_crm_jwt_secret_key_2026_super_secure"
+JWT_EXPIRES_IN="7d"
+CORS_ORIGIN="*"
+```
+
+---
+
+## 15. Local Setup
 ```bash
+# Clone Repository
 git clone https://github.com/Sachinshekhar82/Mini-ERP-CRM.git
 cd Mini-ERP-CRM
 ```
 
-### 2. Backend Setup & Database Seeding
+---
+
+## 16. PostgreSQL Setup
+To switch to PostgreSQL in production, set `DATABASE_URL` in `backend/.env`:
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/minierpcrm?schema=public"
+```
+Update `backend/prisma/schema.prisma` datasource provider to `provider = "postgresql"`.
+
+---
+
+## 17. Prisma Migration
 ```bash
 cd backend
-npm install
-
-# Push database schema & seed sample accounts
 npx prisma db push
-npm run seed
-
-# Start development server (runs on http://localhost:5000)
-npm run dev
 ```
 
-### 3. Frontend Setup
-Open a new terminal window:
+---
+
+## 18. Seed Database
+Populate 4 user roles, 10 customers, 15 products, stock logs, and sales challans:
+```bash
+cd backend
+npm run seed
+```
+
+---
+
+## 19. Start Backend
+```bash
+cd backend
+# Development mode
+npm run dev
+
+# Production build & start
+npm run build
+npm start
+```
+Server runs at `http://localhost:5000`.
+
+---
+
+## 20. Start Frontend
 ```bash
 cd frontend
-npm install
-
-# Start Vite React server (runs on http://localhost:3000)
+# Development mode
 npm run dev
+
+# Production build
+npm run build
 ```
-
-Open your browser and navigate to **`http://localhost:3000`**. Use any of the Quick Login buttons on the login page!
-
----
-
-## ⚙️ Environment Variables Configuration
-
-### Backend `.env` File
-Located at `backend/.env`:
-```env
-PORT=5000
-DATABASE_URL="file:./dev.db" # SQLite local database (Change to postgresql:// for Cloud DB)
-JWT_SECRET="mini_erp_crm_jwt_secret_key_2026_super_secure"
-JWT_EXPIRES_IN="7d"
-NODE_ENV="development"
-
-# Optional AWS S3 Credentials (for cloud image storage)
-AWS_ACCESS_KEY_ID="your_key"
-AWS_SECRET_ACCESS_KEY="your_secret"
-AWS_REGION="us-east-1"
-AWS_S3_BUCKET="mini-erp-crm-uploads"
-```
+Frontend runs at `http://localhost:3000`.
 
 ---
 
-## 🐳 Running with Docker & Docker Compose
+## 21. Demo Credentials
 
-To spin up the entire application (PostgreSQL + Backend API + Frontend Nginx) using Docker:
-
-```bash
-docker-compose up --build
-```
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:5000`
-- PostgreSQL Database: `localhost:5432`
+| Role | Email Address | Password |
+| :--- | :--- | :--- |
+| **👑 Admin** | `admin@company.com` | `password123` |
+| **💼 Sales** | `sales@company.com` | `password123` |
+| **📦 Warehouse** | `warehouse@company.com` | `password123` |
+| **📊 Accounts** | `accounts@company.com` | `password123` |
 
 ---
 
-## 📡 REST API Endpoints Summary
-
-| Method | Endpoint | Access Role | Description |
-| :--- | :--- | :--- | :--- |
-| **POST** | `/api/auth/login` | Public | Authenticates user & returns JWT token |
-| **GET** | `/api/auth/me` | Authenticated | Retrieves current logged-in user profile |
-| **GET** | `/api/dashboard/stats` | Authenticated | Overview stats, low stock count, revenue, recent logs |
-| **GET** | `/api/customers` | Authenticated | List customers with search, type/status filter & pagination |
-| **GET** | `/api/customers/:id` | Authenticated | Customer details with follow-up timeline & sales history |
-| **POST** | `/api/customers` | Admin, Sales | Create a new customer record |
-| **PUT** | `/api/customers/:id` | Admin, Sales | Update customer details |
-| **POST** | `/api/customers/:id/notes` | Authenticated | Add a new CRM follow-up note to customer timeline |
-| **GET** | `/api/products` | Authenticated | List products with low-stock filter (`?lowStock=true`) |
-| **POST** | `/api/products` | Admin, Warehouse | Add new product to inventory |
-| **PUT** | `/api/products/:id` | Admin, Warehouse | Update product details or stock threshold |
-| **GET** | `/api/stock/logs` | Authenticated | Retrieve stock movement log history |
-| **POST** | `/api/stock/adjust` | Admin, Warehouse | Log manual stock receipt (`IN`) or return (`OUT`) |
-| **GET** | `/api/challans` | Authenticated | List sales challans with status filter |
-| **POST** | `/api/challans` | Admin, Sales | Create sales challan with snapshot product items |
-| **PUT** | `/api/challans/:id/status` | Admin, Sales, Accounts | Confirm draft challan & trigger atomic stock deduction |
-| **GET** | `/api/challans/:id/pdf` | Authenticated | Download/render official PDF Tax Invoice |
+## 22. Postman Collection
+The Postman collection is located at [`postman/Mini-ERP-CRM.postman_collection.json`](file:///C:/Users/hp/.gemini/antigravity/scratch/mini-erp-crm/postman/Mini-ERP-CRM.postman_collection.json).
+Import into Postman and execute `1. Authentication -> Login (Admin Role)` to automatically populate the `{{token}}` variable!
 
 ---
 
-## 📬 Postman Collection Testing
-
-A pre-configured **Postman Collection** is included at `./postman_collection.json`.
-
-1. Open Postman -> Click **Import**.
-2. Select `postman_collection.json`.
-3. Run `1. Authentication -> Login (Admin Role)`. The bearer token is saved for subsequent requests.
+## 23. Deployment Guide
+Recommended cloud platforms: Render, Railway, Vercel, AWS App Runner.
 
 ---
 
-## 🌐 Deployment Instructions (Free Hosting Platforms)
-
-### Frontend Deployment (Vercel)
-1. Import repository on Vercel.
-2. Root Directory: `frontend`
-3. Build Command: `npm run build`
-4. Output Directory: `dist`
-5. Environment Variable: `VITE_API_BASE_URL=https://your-backend-api.onrender.com`
-
-### Backend Deployment (Render / Railway)
-1. Create a New Web Service on Render.
-2. Root Directory: `backend`
-3. Build Command: `npm install && npx prisma generate && npm run build`
-4. Start Command: `npx prisma db push && npm run start`
-
-### PostgreSQL Database Deployment (Supabase / Neon)
-1. Create a free PostgreSQL instance on Supabase or Neon.
-2. Update `DATABASE_URL` in backend environment variables to your PostgreSQL connection string (`postgresql://user:pass@ep-xyz.neon.tech/neondb?sslmode=require`).
-3. Run `npx prisma db push` to push the database schema to PostgreSQL.
+## 24. Frontend Deployment
+Deploy `frontend/` to **Vercel** or **Netlify**:
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Environment Variables: `VITE_API_BASE_URL=https://your-backend-domain.com/api`
 
 ---
 
-## 📝 Assumptions Made & Known Limitations
+## 25. Backend Deployment
+Deploy `backend/` to **Render** or **Railway**:
+- Build Command: `npm run build`
+- Start Command: `npm start`
+- Environment Variables: Set `DATABASE_URL`, `JWT_SECRET`, `PORT`, `CORS_ORIGIN`.
 
-1. **Database Flexibility**: Default local database uses SQLite (`dev.db`) via Prisma ORM for seamless, zero-config evaluation without needing external database server installation. The Prisma schema is 100% compatible with PostgreSQL for production deployment.
-2. **Product Image Storage**: Built-in local file upload handling (`/uploads`) with an environment variable hook for AWS S3.
-3. **Currency & Localization**: Default currency formatted in Indian Rupees (₹) with standard GSTIN formats as per distribution business norms in India.
+---
+
+## 26. Database Deployment
+Deploy PostgreSQL database on **Neon.tech**, **Supabase**, or **Render PostgreSQL**:
+- Copy database connection string into `DATABASE_URL`.
+- Execute `npx prisma db push` and `npm run seed`.
+
+---
+
+## 27. Security Considerations
+- **Helmet Security**: Protected HTTP headers (`crossOriginResourcePolicy: false`).
+- **No Password Exposure**: Password hashes are stripped before returning user responses.
+- **Strict Input Validation**: Zod schema validation on all POST/PUT bodies.
+- **Single Source of Truth**: Backend RBAC middleware independently verifies permissions regardless of frontend state.
+
+---
+
+## 28. Assumptions
+- Business operates in INR currency (₹).
+- Standard GSTIN numbers consist of 15 alphanumeric characters.
+
+---
+
+## 29. Known Limitations
+- Challan cancellation currently applies to `DRAFT` status; returning inventory for `CONFIRMED` orders requires issuing a reverse Stock IN adjustment.
+
+---
+
+## 30. Future Improvements
+- Multi-currency support.
+- Automated email dispatch of PDF invoices directly to customer email addresses.
+- Multi-warehouse location routing.
+
+---
+
+## 31. Screenshots
+*(Add application dashboard and challan invoice screenshots here)*
+
+---
+
+## 32. Submission Checklist
+- [x] Decoupled backend REST API & React frontend.
+- [x] Complete Prisma PostgreSQL/SQLite schema with snapshot fields.
+- [x] Bcrypt password hashing & JWT authentication.
+- [x] 4 distinct role permissions (`ADMIN`, `SALES`, `WAREHOUSE`, `ACCOUNTS`).
+- [x] Customer CRM with separate follow-up timeline notes.
+- [x] Product catalog & low stock warning alerts (`currentStock <= minimumStock`).
+- [x] Stock IN & Stock OUT manual adjustment forms with movement audit logs.
+- [x] Sales challans with product snapshot protection.
+- [x] Multi-item atomic stock deduction transaction (`prisma.$transaction`).
+- [x] Postman collection with auto-JWT capture scripts.
+- [x] Clean GitHub repository with detailed documentation.
