@@ -32,7 +32,7 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; 
           color: 'var(--text-secondary)',
         }}
       >
-        Loading Portal Session...
+        Loading Operations Portal...
       </div>
     );
   }
@@ -81,6 +81,8 @@ export const App: React.FC = () => {
               </ProtectedLayout>
             }
           />
+
+          {/* Customer CRM Routes */}
           <Route
             path="/customers"
             element={
@@ -90,10 +92,70 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="/customers/new"
+            element={
+              <ProtectedLayout pageTitle="Customer CRM Portal - New Customer">
+                <Customers />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/customers/:id"
+            element={
+              <ProtectedLayout pageTitle="Customer CRM Portal - Details">
+                <Customers />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/customers/:id/edit"
+            element={
+              <ProtectedLayout pageTitle="Customer CRM Portal - Edit Customer">
+                <Customers />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Product Catalog Routes */}
+          <Route
             path="/products"
             element={
               <ProtectedLayout pageTitle="Products & Inventory Management">
                 <Products />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/products/new"
+            element={
+              <ProtectedLayout pageTitle="Add New Product">
+                <Products />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/products/:id"
+            element={
+              <ProtectedLayout pageTitle="Product Details">
+                <Products />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/products/:id/edit"
+            element={
+              <ProtectedLayout pageTitle="Edit Product">
+                <Products />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Inventory & Stock Movement Logs */}
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedLayout pageTitle="Inventory & Stock Movements">
+                <StockLogs />
               </ProtectedLayout>
             }
           />
@@ -105,6 +167,8 @@ export const App: React.FC = () => {
               </ProtectedLayout>
             }
           />
+
+          {/* Sales Challan Routes */}
           <Route
             path="/challans"
             element={
@@ -114,6 +178,34 @@ export const App: React.FC = () => {
             }
           />
           <Route
+            path="/challans/new"
+            element={
+              <ProtectedLayout pageTitle="Generate Sales Challan">
+                <Challans />
+              </ProtectedLayout>
+            }
+          />
+          <Route
+            path="/challans/:id"
+            element={
+              <ProtectedLayout pageTitle="Sales Challan Details">
+                <Challans />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Admin User Management */}
+          <Route
+            path="/users"
+            element={
+              <ProtectedLayout pageTitle="Admin User Account Management" roles={['ADMIN']}>
+                <Users />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Profile & Settings */}
+          <Route
             path="/profile"
             element={
               <ProtectedLayout pageTitle="User Profile Settings">
@@ -121,11 +213,13 @@ export const App: React.FC = () => {
               </ProtectedLayout>
             }
           />
+
+          {/* 404 Pages */}
           <Route
-            path="/users"
+            path="/404"
             element={
-              <ProtectedLayout pageTitle="Admin User Account Management" roles={['ADMIN']}>
-                <Users />
+              <ProtectedLayout pageTitle="404 Page Not Found">
+                <NotFound />
               </ProtectedLayout>
             }
           />

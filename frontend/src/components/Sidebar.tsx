@@ -18,9 +18,9 @@ export const Sidebar: React.FC = () => {
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/customers', label: 'Customer CRM', icon: UsersIcon },
-    { to: '/products', label: 'Products & Inventory', icon: Package },
+    { to: '/products', label: 'Products Catalog', icon: Package },
+    { to: '/inventory', label: 'Inventory & Stock Logs', icon: History },
     { to: '/challans', label: 'Sales Challans', icon: FileText },
-    { to: '/stock-logs', label: 'Stock Movement Logs', icon: History },
     { to: '/profile', label: 'My Profile', icon: User },
   ];
 
@@ -30,6 +30,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
+      className="sidebar"
       style={{
         width: '260px',
         background: '#162032',
