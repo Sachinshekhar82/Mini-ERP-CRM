@@ -14,32 +14,59 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [loading, setLoading] = useState<boolean>(true);
-
-  useEffect(() => {
-    const fetchMe = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
+  // Synchronous initialization from localStorage for INSTANT frame-0 rendering
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [user, setUser] = useState<User | null>(() => {
+    const cachedUser = localStorage.getItem('user');
+    if (cachedUser) {
+      try {
+        return JSON.parse(cachedUser);
+      } catch (e) {
+        return null;
       }
+    }
+    return null;
+  });
+
+  // Loading is only true on first boot if token exists but user profile is missing from cache
+  const [loading, setLoading] = useState<boolean>(() => {
+    const cachedToken = localStorage.getItem('token');
+    const cachedUser = localStorage.getItem('user');
+    return Boolean(cachedToken && !cachedUser);
+  });
+
+  // Non-blocking background session verification
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    const verifySession = async () => {
       try {
         const res = await api.get('/auth/me');
         const userData = res.data?.data?.user || res.data?.user || res.data?.data;
-        if (userData && userData.email) {
+        if (isMounted && userData && userData.email) {
           setUser(userData);
-        } else {
-          logout();
+          localStorage.setItem('user', JSON.stringify(userData));
         }
-      } catch (err) {
-        console.error('Session verification failed:', err);
-        logout();
+      } catch (err: any) {
+        // If server explicitly returns 401 / 403, invalid session
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          if (isMounted) logout();
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
-    fetchMe();
+
+    verifySession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
   const login = async (email: string, password: string) => {
@@ -53,15 +80,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error('Authentication response did not contain valid token or user profile');
     }
 
+    // Immediately cache both token and user profile
     localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+
     setToken(newToken);
     setUser(userData);
+    setLoading(false);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   const hasRole = (...roles: string[]) => {

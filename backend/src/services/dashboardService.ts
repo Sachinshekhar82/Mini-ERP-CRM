@@ -4,14 +4,15 @@ export class DashboardService {
   static async getStats() {
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // Parallelized query execution to prevent N+1 queries
+    // Execute optimized parallel database queries
     const [
       totalCustomers,
       activeCustomers,
       leadCustomers,
       inactiveCustomers,
       totalProducts,
-      allProducts,
+      lowStockAlerts,
+      stockValuationResult,
       totalChallans,
       draftChallansCount,
       confirmedChallansAggregate,
@@ -26,18 +27,32 @@ export class DashboardService {
       prisma.customer.count({ where: { status: 'LEAD' } }),
       prisma.customer.count({ where: { status: 'INACTIVE' } }),
       prisma.product.count(),
-      prisma.product.findMany({
-        select: {
-          id: true,
-          productName: true,
-          sku: true,
-          category: true,
-          unitPrice: true,
-          currentStock: true,
-          minimumStock: true,
-          warehouseLocation: true,
-        },
-      }),
+
+      // 1. Direct PostgreSQL query for low-stock alert products (currentStock <= minimumStock)
+      prisma.$queryRaw<Array<{
+        id: string;
+        productName: string;
+        sku: string;
+        category: string;
+        unitPrice: number;
+        currentStock: number;
+        minimumStock: number;
+        warehouseLocation: string;
+      }>>`
+        SELECT id, "productName", sku, category, "unitPrice", "currentStock", "minimumStock", "warehouseLocation"
+        FROM "Product"
+        WHERE "currentStock" <= "minimumStock"
+        ORDER BY "currentStock" ASC
+      `,
+
+      // 2. Direct PostgreSQL aggregate calculation for total stock quantity and valuation
+      prisma.$queryRaw<Array<{ totalStockQuantity: bigint | number; totalStockValue: number }>>`
+        SELECT 
+          COALESCE(SUM("currentStock"), 0) as "totalStockQuantity",
+          COALESCE(SUM("currentStock" * "unitPrice"), 0) as "totalStockValue"
+        FROM "Product"
+      `,
+
       prisma.salesChallan.count(),
       prisma.salesChallan.count({ where: { status: 'DRAFT' } }),
       prisma.salesChallan.aggregate({
@@ -83,10 +98,9 @@ export class DashboardService {
       }),
     ]);
 
-    // Calculate product stock metrics in memory
-    const lowStockAlerts = allProducts.filter((p) => p.currentStock <= p.minimumStock);
-    const totalStockQuantity = allProducts.reduce((sum, p) => sum + p.currentStock, 0);
-    const totalStockValue = allProducts.reduce((sum, p) => sum + p.currentStock * p.unitPrice, 0);
+    const valuation = stockValuationResult[0] || { totalStockQuantity: 0, totalStockValue: 0 };
+    const totalStockQuantity = Number(valuation.totalStockQuantity);
+    const totalStockValue = Number(valuation.totalStockValue);
 
     return {
       customers: {
@@ -99,6 +113,7 @@ export class DashboardService {
         total: totalProducts,
         totalStockQuantity,
         totalStockValue,
+        totalValue: totalStockValue,
         lowStockCount: lowStockAlerts.length,
         lowStockAlerts,
       },

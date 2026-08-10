@@ -102,7 +102,8 @@ export interface DashboardStats {
   products: {
     total: number;
     lowStockCount: number;
-    totalValue: number;
+    totalValue?: number;
+    totalStockValue?: number;
     lowStockAlerts: Product[];
   };
   challans: {

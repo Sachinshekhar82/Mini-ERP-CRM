@@ -1,17 +1,27 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
-import { Customers } from './pages/Customers';
-import { Products } from './pages/Products';
-import { StockLogs } from './pages/StockLogs';
-import { Challans } from './pages/Challans';
-import { Profile } from './pages/Profile';
-import { Users } from './pages/Users';
 import { NotFound } from './pages/NotFound';
+
+// Code splitting for secondary pages to reduce initial JavaScript bundle size
+const Customers = lazy(() => import('./pages/Customers').then((m) => ({ default: m.Customers })));
+const Products = lazy(() => import('./pages/Products').then((m) => ({ default: m.Products })));
+const StockLogs = lazy(() => import('./pages/StockLogs').then((m) => ({ default: m.StockLogs })));
+const Challans = lazy(() => import('./pages/Challans').then((m) => ({ default: m.Challans })));
+const Profile = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
+const Users = lazy(() => import('./pages/Users').then((m) => ({ default: m.Users })));
+
+// Lightweight skeleton fallback for lazy-loaded secondary routes
+const RouteSkeletonFallback: React.FC = () => (
+  <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ height: '32px', width: '240px', background: '#162032', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
+    <div style={{ height: '200px', width: '100%', background: '#162032', borderRadius: '12px', animation: 'pulse 1.5s infinite' }} />
+  </div>
+);
 
 const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; roles?: string[] }> = ({
   children,
@@ -20,27 +30,12 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; 
 }) => {
   const { token, user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-primary)',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        Loading Operations Portal...
-      </div>
-    );
-  }
-
-  if (!token) {
+  // If token is missing, redirect immediately to login without blank screen delay
+  if (!token && !loading) {
     return <Navigate to="/login" replace />;
   }
 
+  // If user is verified and role unauthorized
   if (roles && user && !roles.includes(user.role)) {
     return (
       <div className="app-container">
@@ -55,12 +50,15 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; 
     );
   }
 
+  // INSTANT SHELL RENDER: Sidebar, Navbar, and Page Body render immediately!
   return (
     <div className="app-container">
       <Sidebar />
       <div className="main-content">
         <Navbar title={pageTitle} />
-        <main className="page-body">{children}</main>
+        <main className="page-body">
+          <Suspense fallback={<RouteSkeletonFallback />}>{children}</Suspense>
+        </main>
       </div>
     </div>
   );
