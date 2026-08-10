@@ -30,6 +30,18 @@ app.use(
 );
 app.use(express.json());
 
+// Root welcome & API status endpoint
+app.get('/', (req, res) => {
+  return res.status(200).json({
+    success: true,
+    name: 'NEXORA Operations Portal Backend API',
+    version: '1.0.0',
+    status: 'ONLINE',
+    documentation: 'https://github.com/Sachinshekhar82/Mini-ERP-CRM',
+    healthCheck: '/api/health',
+  });
+});
+
 // Production Health check endpoint
 app.get('/api/health', (req, res) => {
   return res.status(200).json({
