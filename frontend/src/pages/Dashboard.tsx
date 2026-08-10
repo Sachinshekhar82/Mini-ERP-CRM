@@ -62,22 +62,25 @@ export const Dashboard: React.FC = () => {
           value={stats.customers?.active || 0}
           subtitle={`${stats.customers?.total || 0} Total registered customers`}
           icon={Users}
+          iconColor="#10B981"
           badgeText={`${stats.customers?.leads || 0} Leads`}
           badgeType="primary"
         />
         <StatCard
           title="Total Products"
           value={stats.products?.total || 0}
-          subtitle={`₹${(stats.products?.totalValue || 0).toLocaleString('en-IN')} Total stock valuation`}
+          subtitle={`₹${(stats.products?.totalValue || 0).toLocaleString('en-IN')} Total valuation`}
           icon={Package}
+          iconColor="#3B82F6"
           badgeText={`${lowStockCount} Alert(s)`}
           badgeType={lowStockCount > 0 ? 'danger' : 'success'}
         />
         <StatCard
           title="Confirmed Sales Revenue"
           value={`₹${(stats.challans?.totalRevenue || 0).toLocaleString('en-IN')}`}
-          subtitle={`${stats.challans?.confirmedCount || 0} Confirmed Sales Challans`}
+          subtitle={`${stats.challans?.confirmedCount || 0} Confirmed Challans`}
           icon={DollarSign}
+          iconColor="#10B981"
           badgeText="Verified"
           badgeType="success"
         />
@@ -86,6 +89,7 @@ export const Dashboard: React.FC = () => {
           value={stats.challans?.total || 0}
           subtitle="Sales challans & drafts issued"
           icon={FileText}
+          iconColor="#EC4899"
           badgeText="Active"
           badgeType="primary"
         />
@@ -94,7 +98,7 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-2">
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertTriangle size={18} color="#F59E0B" />
               Low Stock Alert List
             </h3>
@@ -142,7 +146,7 @@ export const Dashboard: React.FC = () => {
 
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <TrendingUp size={18} color="var(--primary)" />
               Recent Stock Movements
             </h3>
@@ -170,7 +174,7 @@ export const Dashboard: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div
                       style={{
-                        background: log.movementType === 'IN' ? 'var(--success-light)' : 'var(--danger-light)',
+                        background: log.movementType === 'IN' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)',
                         color: log.movementType === 'IN' ? '#34D399' : '#F87171',
                         padding: '0.5rem',
                         borderRadius: '8px',

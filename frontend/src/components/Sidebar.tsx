@@ -6,8 +6,7 @@ import {
   Package,
   FileText,
   History,
-  Box,
-  UserCheck,
+  ShieldCheck,
   User,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -16,16 +15,16 @@ export const Sidebar: React.FC = () => {
   const { user } = useAuth();
 
   const navItems = [
-    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/customers', label: 'Customer CRM', icon: UsersIcon },
-    { to: '/products', label: 'Products Catalog', icon: Package },
-    { to: '/inventory', label: 'Inventory & Stock Logs', icon: History },
-    { to: '/challans', label: 'Sales Challans', icon: FileText },
-    { to: '/profile', label: 'My Profile', icon: User },
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, badgeColor: '#6366F1' },
+    { to: '/customers', label: 'Customer CRM', icon: UsersIcon, badgeColor: '#10B981' },
+    { to: '/products', label: 'Products Catalog', icon: Package, badgeColor: '#3B82F6' },
+    { to: '/inventory', label: 'Inventory & Stock Logs', icon: History, badgeColor: '#F59E0B' },
+    { to: '/challans', label: 'Sales Challans', icon: FileText, badgeColor: '#EC4899' },
+    { to: '/profile', label: 'My Profile', icon: User, badgeColor: '#8B5CF6' },
   ];
 
   if (user?.role === 'ADMIN') {
-    navItems.push({ to: '/users', label: 'Manage Users', icon: UserCheck });
+    navItems.push({ to: '/users', label: 'Manage Users', icon: ShieldCheck, badgeColor: '#EF4444' });
   }
 
   return (
@@ -40,12 +39,12 @@ export const Sidebar: React.FC = () => {
         padding: '1.5rem 1rem',
       }}
     >
-      {/* Brand Header */}
+      {/* Brand Header with Original Vector SVG Icon */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '0.75rem',
+          gap: '0.875rem',
           padding: '0 0.5rem 1.5rem 0.5rem',
           borderBottom: '1px solid var(--border-color)',
           marginBottom: '1.5rem',
@@ -53,28 +52,36 @@ export const Sidebar: React.FC = () => {
       >
         <div
           style={{
-            background: 'var(--primary)',
-            padding: '0.5rem',
-            borderRadius: '10px',
+            width: '42px',
+            height: '42px',
+            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+            borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 6px 16px rgba(99, 102, 241, 0.35)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
           }}
         >
-          <Box size={24} color="#FFFFFF" />
+          {/* Custom Original Vector Brand SVG */}
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </div>
         <div>
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
-            Apex ERP/CRM
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+            Apex ERP + CRM
           </h2>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
             Operations Portal
           </span>
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -86,17 +93,37 @@ export const Sidebar: React.FC = () => {
                 alignItems: 'center',
                 gap: '0.75rem',
                 padding: '0.75rem 1rem',
-                borderRadius: '8px',
+                borderRadius: '10px',
                 fontSize: '0.875rem',
-                fontWeight: 500,
+                fontWeight: isActive ? 600 : 500,
                 color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
-                background: isActive ? 'var(--primary)' : 'transparent',
+                background: isActive
+                  ? 'linear-gradient(135deg, var(--primary) 0%, #4F46E5 100%)'
+                  : 'transparent',
+                boxShadow: isActive ? '0 4px 14px rgba(99, 102, 241, 0.35)' : 'none',
                 textDecoration: 'none',
                 transition: 'all 0.15s ease',
               })}
             >
-              <Icon size={18} />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <div
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#0F172A',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <Icon size={16} color={isActive ? '#FFFFFF' : item.badgeColor} />
+                  </div>
+                  <span>{item.label}</span>
+                </>
+              )}
             </NavLink>
           );
         })}
@@ -108,27 +135,48 @@ export const Sidebar: React.FC = () => {
           style={{
             padding: '0.875rem 1rem',
             background: '#0F172A',
-            borderRadius: '10px',
+            borderRadius: '12px',
             border: '1px solid var(--border-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
           }}
         >
-          <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-            {user.name}
-          </p>
-          <span
-            className={`badge ${
-              user.role === 'ADMIN'
-                ? 'badge-danger'
-                : user.role === 'SALES'
-                ? 'badge-primary'
-                : user.role === 'WAREHOUSE'
-                ? 'badge-warning'
-                : 'badge-success'
-            }`}
-            style={{ marginTop: '0.25rem', fontSize: '0.6875rem' }}
+          <div
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366F1 0%, #10B981 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 700,
+              fontSize: '0.875rem',
+            }}
           >
-            {user.role} ROLE
-          </span>
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div style={{ overflow: 'hidden', flex: 1 }}>
+            <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user.name}
+            </p>
+            <span
+              className={`badge ${
+                user.role === 'ADMIN'
+                  ? 'badge-danger'
+                  : user.role === 'SALES'
+                  ? 'badge-primary'
+                  : user.role === 'WAREHOUSE'
+                  ? 'badge-warning'
+                  : 'badge-success'
+              }`}
+              style={{ marginTop: '0.2rem', fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}
+            >
+              {user.role} ROLE
+            </span>
+          </div>
         </div>
       )}
     </aside>
