@@ -26,8 +26,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       try {
         const res = await api.get('/auth/me');
-        const userData = res.data.data?.user || res.data.user || res.data.data;
-        setUser(userData);
+        const userData = res.data?.data?.user || res.data?.user || res.data?.data;
+        if (userData && userData.email) {
+          setUser(userData);
+        } else {
+          logout();
+        }
       } catch (err) {
         console.error('Session verification failed:', err);
         logout();
@@ -41,13 +45,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     
-    // Support both res.data.data payload wrapper and root payload
-    const authData = res.data.data || res.data;
-    const newToken = authData.token;
-    const userData = authData.user;
+    const authData = res.data?.data || res.data;
+    const newToken = authData?.token;
+    const userData = authData?.user;
 
-    if (!newToken) {
-      throw new Error('Authentication response did not contain token');
+    if (!newToken || !userData) {
+      throw new Error('Authentication response did not contain valid token or user profile');
     }
 
     localStorage.setItem('token', newToken);
@@ -62,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const hasRole = (...roles: string[]) => {
-    if (!user) return false;
+    if (!user || !user.role) return false;
     return roles.includes(user.role);
   };
 
