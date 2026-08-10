@@ -1,228 +1,48 @@
-import { Router, Response } from 'express';
-import { z } from 'zod';
-import multer from 'multer';
-import path from 'path';
-import { prisma } from '../config/prisma';
+import { Router } from 'express';
+import { ProductController } from '../controllers/productController';
+import { createProductSchema, updateProductSchema } from '../validators/productValidator';
 import { validateRequest } from '../middleware/validate';
-import { authenticateJWT, AuthRequest, requireRole } from '../middleware/auth';
+import { authenticateJWT, requireRole } from '../middleware/auth';
 
 const router = Router();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
+router.use(authenticateJWT);
 
-const upload = multer({ storage });
+// GET /api/products (ADMIN, SALES, WAREHOUSE, ACCOUNTS)
+router.get(
+  '/',
+  requireRole('ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'),
+  ProductController.getProducts
+);
 
-const productSchema = z.object({
-  body: z.object({
-    productName: z.string().min(2, 'Product name is required'),
-    sku: z.string().min(2, 'SKU code is required'),
-    category: z.string().min(2, 'Category is required'),
-    unitPrice: z.number().positive('Price must be greater than 0'),
-    currentStock: z.number().int().nonnegative('Stock cannot be negative'),
-    minimumStock: z.number().int().nonnegative().default(5),
-    warehouseLocation: z.string().min(2, 'Warehouse location is required'),
-    imageUrl: z.string().optional(),
-  }),
-});
-
-// GET /api/products (List with search, filter, pagination)
-router.get('/', authenticateJWT, async (req: AuthRequest, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const search = (req.query.search as string) || '';
-    const category = req.query.category as string;
-    const lowStockOnly = req.query.lowStock === 'true';
-
-    const skip = (page - 1) * limit;
-
-    const whereClause: any = {};
-
-    if (search) {
-      whereClause.OR = [
-        { productName: { contains: search } },
-        { sku: { contains: search } },
-        { category: { contains: search } },
-        { warehouseLocation: { contains: search } },
-      ];
-    }
-
-    if (category) whereClause.category = category;
-
-    const [allProducts, totalCount] = await Promise.all([
-      prisma.product.findMany({
-        where: whereClause,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.product.count({ where: whereClause }),
-    ]);
-
-    let products = allProducts;
-    if (lowStockOnly) {
-      products = products.filter((p) => p.currentStock <= p.minimumStock);
-    }
-
-    const paginatedProducts = products.slice(skip, skip + limit);
-
-    return res.json({
-      success: true,
-      data: paginatedProducts,
-      pagination: {
-        total: lowStockOnly ? products.length : totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil((lowStockOnly ? products.length : totalCount) / limit),
-      },
-    });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// GET /api/products/:id (Get single product)
-router.get('/:id', authenticateJWT, async (req: AuthRequest, res: Response) => {
-  try {
-    const product = await prisma.product.findUnique({
-      where: { id: req.params.id },
-      include: {
-        stockMovements: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-      },
-    });
-
-    if (!product) {
-      return res.status(404).json({ success: false, message: 'Product not found' });
-    }
-
-    return res.json({ success: true, data: product });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// GET /api/products/:id/stock-movements
-router.get('/:id/stock-movements', authenticateJWT, async (req: AuthRequest, res: Response) => {
-  try {
-    const logs = await prisma.stockMovement.findMany({
-      where: { productId: req.params.id },
-      orderBy: { createdAt: 'desc' },
-      include: { createdBy: { select: { name: true } } },
-    });
-    return res.json({ success: true, data: logs });
-  } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
-
-// POST /api/products (Add product)
+// POST /api/products (ADMIN, WAREHOUSE)
 router.post(
   '/',
-  authenticateJWT,
   requireRole('ADMIN', 'WAREHOUSE'),
-  validateRequest(productSchema),
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const { productName, sku, category, unitPrice, currentStock, minimumStock, warehouseLocation, imageUrl } = req.body;
-
-      const existingSku = await prisma.product.findUnique({ where: { sku } });
-      if (existingSku) {
-        return res.status(409).json({ success: false, message: `Product SKU '${sku}' already exists` });
-      }
-
-      const product = await prisma.product.create({
-        data: {
-          productName,
-          sku,
-          category,
-          unitPrice,
-          currentStock,
-          minimumStock,
-          warehouseLocation,
-          imageUrl,
-        },
-      });
-
-      if (currentStock > 0) {
-        await prisma.stockMovement.create({
-          data: {
-            productId: product.id,
-            quantityChanged: currentStock,
-            movementType: 'IN',
-            reason: 'Initial Product Stock Setup',
-            createdById: req.user!.id,
-          },
-        });
-      }
-
-      return res.status(201).json({ success: true, data: product });
-    } catch (error: any) {
-      return res.status(500).json({ success: false, message: error.message });
-    }
-  }
+  validateRequest(createProductSchema),
+  ProductController.createProduct
 );
 
-// PUT /api/products/:id (Edit product)
+// GET /api/products/:id (ADMIN, SALES, WAREHOUSE, ACCOUNTS)
+router.get(
+  '/:id',
+  requireRole('ADMIN', 'SALES', 'WAREHOUSE', 'ACCOUNTS'),
+  ProductController.getProductById
+);
+
+// PUT /api/products/:id (ADMIN, WAREHOUSE)
 router.put(
   '/:id',
-  authenticateJWT,
   requireRole('ADMIN', 'WAREHOUSE'),
-  async (req: AuthRequest, res: Response) => {
-    try {
-      const product = await prisma.product.update({
-        where: { id: req.params.id },
-        data: req.body,
-      });
-
-      return res.json({ success: true, data: product });
-    } catch (error: any) {
-      return res.status(500).json({ success: false, message: error.message });
-    }
-  }
+  validateRequest(updateProductSchema),
+  ProductController.updateProduct
 );
 
-// DELETE /api/products/:id (Delete product)
-router.delete(
-  '/:id',
-  authenticateJWT,
-  requireRole('ADMIN'),
-  async (req: AuthRequest, res: Response) => {
-    try {
-      await prisma.product.delete({ where: { id: req.params.id } });
-      return res.json({ success: true, message: 'Product deleted successfully' });
-    } catch (error: any) {
-      return res.status(500).json({ success: false, message: error.message });
-    }
-  }
-);
-
-// POST /api/products/upload-image (Upload image)
-router.post(
-  '/upload-image',
-  authenticateJWT,
+// GET /api/products/:id/stock-movements (ADMIN, WAREHOUSE)
+router.get(
+  '/:id/stock-movements',
   requireRole('ADMIN', 'WAREHOUSE'),
-  upload.single('image'),
-  (req: AuthRequest, res: Response) => {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image file uploaded' });
-    }
-
-    const imageUrl = `/uploads/${req.file.filename}`;
-    return res.json({
-      success: true,
-      imageUrl,
-      message: 'Product image uploaded successfully',
-    });
-  }
+  ProductController.getProductMovements
 );
 
 export default router;
