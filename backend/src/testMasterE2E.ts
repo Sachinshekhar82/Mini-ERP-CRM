@@ -8,7 +8,7 @@ import { prisma } from './config/prisma';
 
 async function runMasterE2ETestSuite() {
   console.log('================================================================');
-  console.log('🧪 MASTER END-TO-END QA AUDIT & VERIFICATION SUITE');
+  console.log('🧪 MASTER END-TO-END QA AUDIT & VERIFICATION SUITE (PostgreSQL)');
   console.log('================================================================\n');
 
   let passed = 0;
@@ -26,28 +26,32 @@ async function runMasterE2ETestSuite() {
 
   try {
     // -------------------------------------------------------------------------
-    // 1. AUTH & ROLES AUDIT
+    // 1. AUTH & ROLES AUDIT (Verifying PostgreSQL Demo Users)
     // -------------------------------------------------------------------------
     console.log('--- 1. TESTING AUTHENTICATION & ROLE-BASED AUTHORIZATION ---');
-    const admin = await AuthService.login('admin@company.com', 'password123');
-    const sales = await AuthService.login('sales@company.com', 'password123');
-    const warehouse = await AuthService.login('warehouse@company.com', 'password123');
-    const accounts = await AuthService.login('accounts@company.com', 'password123');
+    const adminDemo = await AuthService.login('admin@demo.com', 'password123');
+    const salesDemo = await AuthService.login('sales@demo.com', 'password123');
+    const warehouseDemo = await AuthService.login('warehouse@demo.com', 'password123');
+    const accountsDemo = await AuthService.login('accounts@demo.com', 'password123');
 
-    assert(admin.user.role === 'ADMIN', 'Admin Login Successful');
-    assert(sales.user.role === 'SALES', 'Sales Login Successful');
-    assert(warehouse.user.role === 'WAREHOUSE', 'Warehouse Login Successful');
-    assert(accounts.user.role === 'ACCOUNTS', 'Accounts Login Successful');
+    assert(adminDemo.user.role === 'ADMIN', 'Admin Demo Login (admin@demo.com) Successful');
+    assert(salesDemo.user.role === 'SALES', 'Sales Demo Login (sales@demo.com) Successful');
+    assert(warehouseDemo.user.role === 'WAREHOUSE', 'Warehouse Demo Login (warehouse@demo.com) Successful');
+    assert(accountsDemo.user.role === 'ACCOUNTS', 'Accounts Demo Login (accounts@demo.com) Successful');
+
+    // Also verify @company.com credentials
+    const adminComp = await AuthService.login('admin@company.com', 'password123');
+    assert(adminComp.user.role === 'ADMIN', 'Admin Login (admin@company.com) Successful');
 
     try {
-      await AuthService.login('admin@company.com', 'wrongpassword');
+      await AuthService.login('admin@demo.com', 'wrongpassword');
       assert(false, 'Invalid password check');
     } catch (err: any) {
       assert(err.statusCode === 401, 'Invalid password returns HTTP 401');
     }
 
     try {
-      await AuthService.login('unknown@company.com', 'password123');
+      await AuthService.login('nonexistent@demo.com', 'password123');
       assert(false, 'Invalid email check');
     } catch (err: any) {
       assert(err.statusCode === 401, 'Invalid email returns HTTP 401');
@@ -58,22 +62,22 @@ async function runMasterE2ETestSuite() {
     // -------------------------------------------------------------------------
     console.log('\n--- 2. TESTING CUSTOMER CRM MODULE ---');
     const newCust = await CustomerService.createCustomer({
-      customerName: 'QA Audit Customer',
+      customerName: 'PostgreSQL QA Customer',
       mobile: `+91 ${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      email: `qa.audit.${Date.now()}@domain.com`,
-      businessName: 'QA Audit Enterprises',
+      email: `pg.audit.${Date.now()}@domain.com`,
+      businessName: 'PG Audit Enterprises',
       gstNumber: '27AAACQ1111Z1Z0',
       customerType: 'DISTRIBUTOR',
-      address: 'Pune, Maharashtra',
+      address: 'Mumbai, Maharashtra',
       status: 'LEAD',
     });
-    assert(Boolean(newCust.id), 'Customer Created Successfully');
+    assert(Boolean(newCust.id), 'Customer Created Successfully in PostgreSQL');
 
-    const searchCust = await CustomerService.getCustomers({ search: 'QA Audit' });
+    const searchCust = await CustomerService.getCustomers({ search: 'PG Audit' });
     assert(searchCust.customers.length > 0, 'Customer Search by Name/Business');
 
-    const followUp = await CustomerService.addFollowUp(newCust.id, 'QA Follow up test note', sales.user.id);
-    assert(Boolean(followUp.id), 'Customer Follow-up Note Created');
+    const followUp = await CustomerService.addFollowUp(newCust.id, 'PostgreSQL Follow up test note', salesDemo.user.id);
+    assert(Boolean(followUp.id), 'Customer Follow-up Note Created in Relational Model');
 
     // -------------------------------------------------------------------------
     // 3. PRODUCT & INVENTORY AUDIT
@@ -82,35 +86,35 @@ async function runMasterE2ETestSuite() {
     const prodA = await ProductService.createProduct(
       {
         productName: 'CRITICAL TEST PRODUCT A',
-        sku: `SKU-CRIT-A-${Date.now()}`,
+        sku: `SKU-PG-CRIT-A-${Date.now()}`,
         category: 'QA Category',
         unitPrice: 1000,
         currentStock: 5, // Exactly 5!
         minimumStock: 2,
         warehouseLocation: 'Rack CR-01',
       },
-      warehouse.user.id
+      warehouseDemo.user.id
     );
 
     const prodB = await ProductService.createProduct(
       {
         productName: 'CRITICAL TEST PRODUCT B',
-        sku: `SKU-CRIT-B-${Date.now()}`,
+        sku: `SKU-PG-CRIT-B-${Date.now()}`,
         category: 'QA Category',
         unitPrice: 2000,
         currentStock: 2, // Exactly 2!
         minimumStock: 2,
         warehouseLocation: 'Rack CR-02',
       },
-      warehouse.user.id
+      warehouseDemo.user.id
     );
 
-    assert(prodA.currentStock === 5 && prodB.currentStock === 2, 'Products A (5) & B (2) Created Successfully');
+    assert(prodA.currentStock === 5 && prodB.currentStock === 2, 'Products A (5) & B (2) Created Successfully in PostgreSQL');
 
     // -------------------------------------------------------------------------
-    // 4. CRITICAL MULTI-ITEM ATOMIC ROLLBACK TEST
+    // 4. CRITICAL MULTI-ITEM ATOMIC ROLLBACK TEST AGAINST POSTGRESQL
     // -------------------------------------------------------------------------
-    console.log('\n--- 4. CRITICAL TEST: MULTI-ITEM ATOMIC ROLLBACK ---');
+    console.log('\n--- 4. CRITICAL TEST: MULTI-ITEM ATOMIC ROLLBACK IN POSTGRESQL ---');
     console.log('Initial Stock State: Product A = 5 available, Product B = 2 available');
     console.log('Creating Challan requesting: Product A = 2, Product B = 5 (EXCEEDS Product B stock!)');
 
@@ -124,7 +128,7 @@ async function runMasterE2ETestSuite() {
           { productId: prodB.id, quantity: 5 }, // 5 requested vs 2 available (INSUFFICIENT!)
         ],
       },
-      sales.user.id
+      salesDemo.user.id
     );
 
     const initialMovementLogsCount = await prisma.stockMovement.count({
@@ -133,7 +137,7 @@ async function runMasterE2ETestSuite() {
 
     console.log('Attempting confirmation of invalid challan...');
     try {
-      await ChallanService.confirmChallan(criticalChallan.id, sales.user.id);
+      await ChallanService.confirmChallan(criticalChallan.id, salesDemo.user.id);
       assert(false, 'CRITICAL TEST: Confirmation should have failed!');
     } catch (err: any) {
       assert(
@@ -142,7 +146,7 @@ async function runMasterE2ETestSuite() {
       );
     }
 
-    // Verify Atomic Rollback Requirements:
+    // Verify Atomic Rollback Requirements directly from PostgreSQL:
     // - Product A stock remains 5
     // - Product B stock remains 2
     // - Zero OUT movement logs created
@@ -154,8 +158,8 @@ async function runMasterE2ETestSuite() {
       where: { productId: { in: [prodA.id, prodB.id] } },
     });
 
-    assert(checkA.currentStock === 5, 'CRITICAL TEST PASSED: Product A stock remains exactly 5');
-    assert(checkB.currentStock === 2, 'CRITICAL TEST PASSED: Product B stock remains exactly 2');
+    assert(checkA.currentStock === 5, 'CRITICAL TEST PASSED: Product A stock in PostgreSQL remains exactly 5');
+    assert(checkB.currentStock === 2, 'CRITICAL TEST PASSED: Product B stock in PostgreSQL remains exactly 2');
     assert(postMovementLogsCount === initialMovementLogsCount, 'CRITICAL TEST PASSED: Zero OUT stock movements created');
     assert(checkChallan.status === 'DRAFT', 'CRITICAL TEST PASSED: Sales Challan remains in DRAFT status');
 
@@ -164,10 +168,10 @@ async function runMasterE2ETestSuite() {
     // -------------------------------------------------------------------------
     console.log('\n--- 5. TESTING VALID CONFIRMATION AFTER REPLENISHMENT ---');
     // Stock IN 10 units for Product B
-    await InventoryService.stockIn(prodB.id, 10, 'Replenishment for QA Test', warehouse.user.id);
+    await InventoryService.stockIn(prodB.id, 10, 'Replenishment for QA Test', warehouseDemo.user.id);
 
     // Now confirm the challan (Product A req 2 vs 5 avail, Product B req 5 vs 12 avail)
-    const confirmedChallan = await ChallanService.confirmChallan(criticalChallan.id, sales.user.id);
+    const confirmedChallan = await ChallanService.confirmChallan(criticalChallan.id, salesDemo.user.id);
 
     const postConfirmA = await ProductService.getProductById(prodA.id);
     const postConfirmB = await ProductService.getProductById(prodB.id);

@@ -11,6 +11,9 @@
     "prisma:migrate": "prisma db push",
     "seed": "ts-node prisma/seed.ts"
   },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.10.2",
     "bcryptjs": "^2.4.3",

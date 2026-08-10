@@ -4,59 +4,46 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding Phase 2 PostgreSQL/Prisma Database...');
+  console.log('🌱 Seeding PostgreSQL Database with Idempotent Upserts...');
 
-  // 1. Clean existing records in reverse dependency order
-  await prisma.salesChallanItem.deleteMany();
-  await prisma.salesChallan.deleteMany();
-  await prisma.stockMovement.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.customerFollowUp.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.user.deleteMany();
-
-  // 2. Create Users for all 4 required roles with secure password hashing
+  // 1. Create Users for all 4 required roles with secure bcrypt password hashing
   const hashedPassword = await bcrypt.hash('password123', 10);
 
-  const admin = await prisma.user.create({
-    data: {
-      name: 'System Admin',
-      email: 'admin@company.com',
-      password: hashedPassword,
-      role: 'ADMIN',
-    },
-  });
+  const demoUsers = [
+    { name: 'System Admin', email: 'admin@demo.com', role: 'ADMIN' },
+    { name: 'System Admin', email: 'admin@company.com', role: 'ADMIN' },
+    { name: 'Sales Manager', email: 'sales@demo.com', role: 'SALES' },
+    { name: 'Sales Manager', email: 'sales@company.com', role: 'SALES' },
+    { name: 'Warehouse Supervisor', email: 'warehouse@demo.com', role: 'WAREHOUSE' },
+    { name: 'Warehouse Supervisor', email: 'warehouse@company.com', role: 'WAREHOUSE' },
+    { name: 'Accounts Officer', email: 'accounts@demo.com', role: 'ACCOUNTS' },
+    { name: 'Accounts Officer', email: 'accounts@company.com', role: 'ACCOUNTS' },
+  ];
 
-  const sales = await prisma.user.create({
-    data: {
-      name: 'Sales Manager',
-      email: 'sales@company.com',
-      password: hashedPassword,
-      role: 'SALES',
-    },
-  });
+  const userRecords: Record<string, any> = {};
 
-  const warehouse = await prisma.user.create({
-    data: {
-      name: 'Warehouse Supervisor',
-      email: 'warehouse@company.com',
-      password: hashedPassword,
-      role: 'WAREHOUSE',
-    },
-  });
+  for (const u of demoUsers) {
+    const user = await prisma.user.upsert({
+      where: { email: u.email },
+      update: { password: hashedPassword, role: u.role, name: u.name },
+      create: {
+        name: u.name,
+        email: u.email,
+        password: hashedPassword,
+        role: u.role,
+      },
+    });
+    userRecords[u.email] = user;
+  }
 
-  const accounts = await prisma.user.create({
-    data: {
-      name: 'Accounts Officer',
-      email: 'accounts@company.com',
-      password: hashedPassword,
-      role: 'ACCOUNTS',
-    },
-  });
+  const admin = userRecords['admin@demo.com'];
+  const sales = userRecords['sales@demo.com'];
+  const warehouse = userRecords['warehouse@demo.com'];
+  const accounts = userRecords['accounts@demo.com'];
 
-  console.log('✅ Seeded 4 User Roles (Password: password123)');
+  console.log('✅ Seeded 4 User Roles (admin@demo.com, sales@demo.com, warehouse@demo.com, accounts@demo.com)');
 
-  // 3. Create 10 Realistic Customers
+  // 2. Idempotent Customer Upserts
   const customerData = [
     {
       customerName: 'Rajesh Sharma',
@@ -182,22 +169,30 @@ async function main() {
 
   const createdCustomers = [];
   for (const c of customerData) {
-    const cust = await prisma.customer.create({ data: c });
-    createdCustomers.push(cust);
+    const existing = await prisma.customer.findFirst({ where: { email: c.email } });
+    if (existing) {
+      createdCustomers.push(existing);
+    } else {
+      const cust = await prisma.customer.create({ data: c });
+      createdCustomers.push(cust);
+    }
   }
 
   console.log('✅ Seeded 10 Realistic Customers');
 
-  // Customer Follow Ups
-  await prisma.customerFollowUp.createMany({
-    data: [
-      { customerId: createdCustomers[0].id, note: 'Discussed Q3 pricing tiers. Sent updated product catalog PDF.', createdById: sales.id },
-      { customerId: createdCustomers[1].id, note: 'Confirmed purchase order #PO-402. Payment terms 30 days.', createdById: sales.id },
-      { customerId: createdCustomers[2].id, note: 'Initial phone call completed. Quotation requested for 20 drill machines.', createdById: sales.id },
-    ],
-  });
+  // 3. Idempotent Customer Follow Ups
+  const existingFollowUps = await prisma.customerFollowUp.count();
+  if (existingFollowUps === 0) {
+    await prisma.customerFollowUp.createMany({
+      data: [
+        { customerId: createdCustomers[0].id, note: 'Discussed Q3 pricing tiers. Sent updated product catalog PDF.', createdById: sales.id },
+        { customerId: createdCustomers[1].id, note: 'Confirmed purchase order #PO-402. Payment terms 30 days.', createdById: sales.id },
+        { customerId: createdCustomers[2].id, note: 'Initial phone call completed. Quotation requested for 20 drill machines.', createdById: sales.id },
+      ],
+    });
+  }
 
-  // 4. Create 15 Realistic Products
+  // 4. Idempotent Product Upserts
   const productData = [
     { productName: 'Industrial Heavy Duty Drill Machine 850W', sku: 'SKU-DRL-850', category: 'Power Tools', unitPrice: 3499.00, currentStock: 45, minimumStock: 10, warehouseLocation: 'Rack A-12, Warehouse 1' },
     { productName: 'Ergonomic Executive Mesh Office Chair', sku: 'SKU-CHR-EXEC', category: 'Furniture', unitPrice: 6250.00, currentStock: 3, minimumStock: 10, warehouseLocation: 'Section B, Warehouse 2' },
@@ -218,83 +213,92 @@ async function main() {
 
   const createdProducts = [];
   for (const p of productData) {
-    const prod = await prisma.product.create({ data: p });
+    const prod = await prisma.product.upsert({
+      where: { sku: p.sku },
+      update: { productName: p.productName, category: p.category, unitPrice: p.unitPrice, warehouseLocation: p.warehouseLocation },
+      create: p,
+    });
     createdProducts.push(prod);
   }
 
   console.log('✅ Seeded 15 Realistic Products');
 
-  // 5. Create Initial Stock Movements
-  await prisma.stockMovement.createMany({
-    data: [
-      { productId: createdProducts[0].id, quantityChanged: 50, movementType: 'IN', reason: 'Purchase Order #PO-1001', createdById: warehouse.id },
-      { productId: createdProducts[1].id, quantityChanged: 20, movementType: 'IN', reason: 'Vendor Shipment Received', createdById: warehouse.id },
-      { productId: createdProducts[1].id, quantityChanged: 17, movementType: 'OUT', reason: 'Damaged Stock Return', createdById: warehouse.id },
-      { productId: createdProducts[2].id, quantityChanged: 120, movementType: 'IN', reason: 'Initial Inventory Setup', createdById: warehouse.id },
-    ],
-  });
+  // 5. Initial Stock Movements
+  const existingMovements = await prisma.stockMovement.count();
+  if (existingMovements === 0) {
+    await prisma.stockMovement.createMany({
+      data: [
+        { productId: createdProducts[0].id, quantityChanged: 50, movementType: 'IN', reason: 'Purchase Order #PO-1001', createdById: warehouse.id },
+        { productId: createdProducts[1].id, quantityChanged: 20, movementType: 'IN', reason: 'Vendor Shipment Received', createdById: warehouse.id },
+        { productId: createdProducts[1].id, quantityChanged: 17, movementType: 'OUT', reason: 'Damaged Stock Return', createdById: warehouse.id },
+        { productId: createdProducts[2].id, quantityChanged: 120, movementType: 'IN', reason: 'Initial Inventory Setup', createdById: warehouse.id },
+      ],
+    });
+    console.log('✅ Seeded Stock Movements');
+  }
 
-  console.log('✅ Seeded Stock Movements');
-
-  // 6. Create Sales Challans with Snapshot Fields
-  await prisma.salesChallan.create({
-    data: {
-      challanNumber: 'CH-2026-0001',
-      customerId: createdCustomers[0].id,
-      totalAmount: 3499.00 * 5,
-      totalQuantity: 5,
-      status: 'CONFIRMED',
-      createdById: sales.id,
-      notes: 'Express dispatch via Rivigo Logistics.',
-      items: {
-        create: [
-          {
-            productId: createdProducts[0].id,
-            productNameSnapshot: createdProducts[0].productName,
-            skuSnapshot: createdProducts[0].sku,
-            unitPriceSnapshot: createdProducts[0].unitPrice,
-            quantity: 5,
-            totalPrice: 3499.00 * 5,
-          },
-        ],
+  // 6. Initial Sales Challans
+  const existingChallans = await prisma.salesChallan.count();
+  if (existingChallans === 0) {
+    await prisma.salesChallan.create({
+      data: {
+        challanNumber: 'CH-2026-0001',
+        customerId: createdCustomers[0].id,
+        totalAmount: 3499.00 * 5,
+        totalQuantity: 5,
+        status: 'CONFIRMED',
+        createdById: sales.id,
+        notes: 'Express dispatch via Rivigo Logistics.',
+        items: {
+          create: [
+            {
+              productId: createdProducts[0].id,
+              productNameSnapshot: createdProducts[0].productName,
+              skuSnapshot: createdProducts[0].sku,
+              unitPriceSnapshot: createdProducts[0].unitPrice,
+              quantity: 5,
+              totalPrice: 3499.00 * 5,
+            },
+          ],
+        },
       },
-    },
-  });
+    });
 
-  await prisma.salesChallan.create({
-    data: {
-      challanNumber: 'CH-2026-0002',
-      customerId: createdCustomers[1].id,
-      totalAmount: 1150.00 * 10 + 6250.00 * 2,
-      totalQuantity: 12,
-      status: 'DRAFT',
-      createdById: sales.id,
-      notes: 'Draft quote pending customer approval.',
-      items: {
-        create: [
-          {
-            productId: createdProducts[2].id,
-            productNameSnapshot: createdProducts[2].productName,
-            skuSnapshot: createdProducts[2].sku,
-            unitPriceSnapshot: createdProducts[2].unitPrice,
-            quantity: 10,
-            totalPrice: 1150.00 * 10,
-          },
-          {
-            productId: createdProducts[1].id,
-            productNameSnapshot: createdProducts[1].productName,
-            skuSnapshot: createdProducts[1].sku,
-            unitPriceSnapshot: createdProducts[1].unitPrice,
-            quantity: 2,
-            totalPrice: 6250.00 * 2,
-          },
-        ],
+    await prisma.salesChallan.create({
+      data: {
+        challanNumber: 'CH-2026-0002',
+        customerId: createdCustomers[1].id,
+        totalAmount: 1150.00 * 10 + 6250.00 * 2,
+        totalQuantity: 12,
+        status: 'DRAFT',
+        createdById: sales.id,
+        notes: 'Draft quote pending customer approval.',
+        items: {
+          create: [
+            {
+              productId: createdProducts[2].id,
+              productNameSnapshot: createdProducts[2].productName,
+              skuSnapshot: createdProducts[2].sku,
+              unitPriceSnapshot: createdProducts[2].unitPrice,
+              quantity: 10,
+              totalPrice: 1150.00 * 10,
+            },
+            {
+              productId: createdProducts[1].id,
+              productNameSnapshot: createdProducts[1].productName,
+              skuSnapshot: createdProducts[1].sku,
+              unitPriceSnapshot: createdProducts[1].unitPrice,
+              quantity: 2,
+              totalPrice: 6250.00 * 2,
+            },
+          ],
+        },
       },
-    },
-  });
+    });
+    console.log('✅ Seeded Sales Challans with Product Snapshot Fields');
+  }
 
-  console.log('✅ Seeded Sales Challans with Product Snapshot Fields');
-  console.log('🎉 Phase 2 Database Seeding Complete!');
+  console.log('🎉 Idempotent PostgreSQL Seeding Complete!');
 }
 
 main()
