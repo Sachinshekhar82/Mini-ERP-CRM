@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Mini ERP + CRM Operations Portal API",
-    "description": "Complete Postman collection for testing Mini ERP + CRM backend REST APIs including Auth, Admin Users, Customers CRM, Products & Inventory, Stock Movement Logs, and Sales Challans.",
+    "name": "Mini ERP CRM API",
+    "description": "Complete production Postman collection for Mini ERP + CRM Operations Portal REST APIs with dynamic JWT auto-capture test scripts, RBAC endpoint tests, and full folder hierarchy.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -21,7 +21,26 @@
       "name": "1. Authentication",
       "item": [
         {
-          "name": "Login (Admin Role)",
+          "name": "Login (Admin Role & Auto-Token Capture)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Success is true', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -36,6 +55,24 @@
         },
         {
           "name": "Login (Sales Role)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Success is true & Token Captured', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.collectionVariables.set('token', jsonData.data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -50,6 +87,24 @@
         },
         {
           "name": "Get Current User Profile (/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('User Profile Returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.user.email).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -61,52 +116,58 @@
       ]
     },
     {
-      "name": "2. User Administration (Admin Only)",
-      "item": [
-        {
-          "name": "Get All Users",
-          "request": {
-            "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": { "raw": "{{baseUrl}}/users" }
-          }
-        },
-        {
-          "name": "Create User Account",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Karan Verma\",\n  \"email\": \"karan@company.com\",\n  \"password\": \"password123\",\n  \"role\": \"SALES\"\n}"
-            },
-            "url": { "raw": "{{baseUrl}}/users" }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Customer CRM",
+      "name": "2. Customers",
       "item": [
         {
           "name": "Get Customers (List with search & filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Customers List Returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": {
-              "raw": "{{baseUrl}}/customers?page=1&limit=10&search=&status=&type="
+              "raw": "{{baseUrl}}/customers?page=1&limit=10&search=&status=&customerType="
             }
           }
         },
         {
           "name": "Create Customer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Customer Created Successfully', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.id).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -115,13 +176,48 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Vikram Sethi\",\n  \"mobile\": \"+91 9822001122\",\n  \"email\": \"vikram@sethitraders.com\",\n  \"businessName\": \"Sethi Traders & Supplies\",\n  \"gstNumber\": \"27AAACS1234E1Z8\",\n  \"type\": \"DISTRIBUTOR\",\n  \"address\": \"77 Ring Road, Pune, Maharashtra 411001\",\n  \"status\": \"ACTIVE\",\n  \"followUpDate\": \"2026-08-20\",\n  \"notes\": \"Key wholesale buyer for Western Maharashtra.\"\n}"
+              "raw": "{\n  \"customerName\": \"Vikram Sethi\",\n  \"mobile\": \"+91 9822001122\",\n  \"email\": \"vikram@sethitraders.com\",\n  \"businessName\": \"Sethi Traders & Supplies\",\n  \"gstNumber\": \"27AAACS1234E1Z8\",\n  \"customerType\": \"DISTRIBUTOR\",\n  \"address\": \"77 Ring Road, Pune, Maharashtra 411001\",\n  \"status\": \"ACTIVE\",\n  \"followUpDate\": \"2026-08-20\",\n  \"notes\": \"Key wholesale buyer for Western Maharashtra.\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/customers" }
           }
         },
         {
-          "name": "Add Follow-up Note (/follow-ups)",
+          "name": "Get Customer Detail By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/customers/CUSTOMER_ID_HERE" }
+          }
+        },
+        {
+          "name": "Update Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACTIVE\",\n  \"followUpDate\": \"2026-08-25\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/customers/CUSTOMER_ID_HERE" }
+          }
+        },
+        {
+          "name": "Delete Customer (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/customers/CUSTOMER_ID_HERE" }
+          }
+        },
+        {
+          "name": "Add Follow-Up Note",
           "request": {
             "method": "POST",
             "header": [
@@ -130,18 +226,46 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"note\": \"Scheduled call with purchase manager for Q3 rate contract renewal.\"\n}"
+              "raw": "{\n  \"note\": \"Discussed Q3 rate renewal terms. Sent formal quotation.\"\n}"
             },
+            "url": { "raw": "{{baseUrl}}/customers/CUSTOMER_ID_HERE/follow-ups" }
+          }
+        },
+        {
+          "name": "Get Follow-Up Notes Timeline",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
             "url": { "raw": "{{baseUrl}}/customers/CUSTOMER_ID_HERE/follow-ups" }
           }
         }
       ]
     },
     {
-      "name": "4. Product & Inventory",
+      "name": "3. Products",
       "item": [
         {
-          "name": "Get Products (List & Low Stock Alert Filter)",
+          "name": "Get Products (Catalog List & Low Stock Alert Filter)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Products List Returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -160,28 +284,71 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Heavy Duty Cordless Angle Grinder\",\n  \"sku\": \"SKU-GRND-20V\",\n  \"category\": \"Power Tools\",\n  \"unitPrice\": 4250.00,\n  \"currentStock\": 30,\n  \"minStockAlert\": 8,\n  \"location\": \"Rack C-02, Warehouse 1\"\n}"
+              "raw": "{\n  \"productName\": \"Heavy Duty Cordless Angle Grinder\",\n  \"sku\": \"SKU-GRND-20V\",\n  \"category\": \"Power Tools\",\n  \"unitPrice\": 4250.00,\n  \"currentStock\": 30,\n  \"minimumStock\": 8,\n  \"warehouseLocation\": \"Rack C-02, Warehouse 1\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/products" }
           }
-        }
-      ]
-    },
-    {
-      "name": "5. Stock Movements & Inventory Actions",
-      "item": [
+        },
         {
-          "name": "Get Stock Movement Audit Logs (/inventory/movements)",
+          "name": "Get Product By ID",
           "request": {
             "method": "GET",
             "header": [
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
-            "url": { "raw": "{{baseUrl}}/inventory/movements" }
+            "url": { "raw": "{{baseUrl}}/products/PRODUCT_ID_HERE" }
           }
         },
         {
-          "name": "Stock IN (/inventory/stock-in)",
+          "name": "Update Product (Strips Arbitrary currentStock)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productName\": \"Updated Cordless Angle Grinder 20V\",\n  \"unitPrice\": 4500.00,\n  \"warehouseLocation\": \"Rack C-05, Warehouse 1\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/products/PRODUCT_ID_HERE" }
+          }
+        },
+        {
+          "name": "Get Product Stock Movement Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/products/PRODUCT_ID_HERE/stock-movements" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Inventory",
+      "item": [
+        {
+          "name": "Stock IN (Receive Vendor Inventory)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Stock IN Logged', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.movement.movementType).to.eql('IN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -190,13 +357,13 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"quantity\": 10,\n  \"reason\": \"Received Vendor Shipment PO #402\"\n}"
+              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"quantity\": 15,\n  \"reason\": \"Received Vendor Shipment PO #402\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/inventory/stock-in" }
           }
         },
         {
-          "name": "Stock OUT (/inventory/stock-out)",
+          "name": "Stock OUT (Issue Stock / Damaged Return)",
           "request": {
             "method": "POST",
             "header": [
@@ -209,14 +376,42 @@
             },
             "url": { "raw": "{{baseUrl}}/inventory/stock-out" }
           }
+        },
+        {
+          "name": "Get System-Wide Stock Movements Audit Trail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/inventory/movements" }
+          }
         }
       ]
     },
     {
-      "name": "6. Sales Challans & PDF Invoices",
+      "name": "5. Challans",
       "item": [
         {
           "name": "Get Sales Challans",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Sales Challans List Returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -226,7 +421,7 @@
           }
         },
         {
-          "name": "Generate Draft Sales Challan (Snapshot Protection)",
+          "name": "Create Sales Challan (DRAFT)",
           "request": {
             "method": "POST",
             "header": [
@@ -241,7 +436,32 @@
           }
         },
         {
-          "name": "Confirm Sales Challan (/challans/:id/confirm)",
+          "name": "Get Sales Challan By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/challans/CHALLAN_ID_HERE" }
+          }
+        },
+        {
+          "name": "Update Sales Challan (DRAFT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Updated dispatch instructions.\",\n  \"items\": [\n    {\n      \"productId\": \"PRODUCT_ID_HERE\",\n      \"quantity\": 3\n    }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/challans/CHALLAN_ID_HERE" }
+          }
+        },
+        {
+          "name": "Confirm Sales Challan (Atomic Stock Deduction)",
           "request": {
             "method": "POST",
             "header": [
@@ -251,7 +471,7 @@
           }
         },
         {
-          "name": "Cancel Sales Challan (/challans/:id/cancel)",
+          "name": "Cancel Sales Challan (DRAFT Only)",
           "request": {
             "method": "POST",
             "header": [
@@ -268,6 +488,41 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": { "raw": "{{baseUrl}}/challans/CHALLAN_ID_HERE/pdf" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics & Low Stock Alerts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Dashboard Metrics Returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data.customers.total).to.be.a('number');",
+                  "    pm.expect(jsonData.data.products.total).to.be.a('number');",
+                  "    pm.expect(jsonData.data.challans.total).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/dashboard/stats" }
           }
         }
       ]
