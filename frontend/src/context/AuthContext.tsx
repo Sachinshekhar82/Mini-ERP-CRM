@@ -26,9 +26,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       try {
         const res = await api.get('/auth/me');
-        setUser(res.data.user);
+        const userData = res.data.data?.user || res.data.user || res.data.data;
+        setUser(userData);
       } catch (err) {
-        console.error('Session expired', err);
+        console.error('Session verification failed:', err);
         logout();
       } finally {
         setLoading(false);
@@ -39,7 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: userData } = res.data;
+    
+    // Support both res.data.data payload wrapper and root payload
+    const authData = res.data.data || res.data;
+    const newToken = authData.token;
+    const userData = authData.user;
+
+    if (!newToken) {
+      throw new Error('Authentication response did not contain token');
+    }
+
     localStorage.setItem('token', newToken);
     setToken(newToken);
     setUser(userData);
