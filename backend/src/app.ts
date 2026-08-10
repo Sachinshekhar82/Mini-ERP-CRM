@@ -15,9 +15,28 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(morgan('dev'));
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+
+// CORS configuration for production Vercel & local development
+const corsOrigins = env.CORS_ORIGIN === '*' 
+  ? '*' 
+  : env.CORS_ORIGIN.split(',').map((origin) => origin.trim());
+
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: true,
+  })
+);
 app.use(express.json());
+
+// Production Health check endpoint
+app.get('/api/health', (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: 'API is healthy',
+  });
+});
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -29,16 +48,7 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/challans', challanRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    success: true,
-    status: 'UP',
-    environment: env.NODE_ENV,
-    timestamp: new Date().toISOString(),
-  });
-});
-
+// Centralized error handling
 app.use(errorHandler);
 
 export default app;
