@@ -13,12 +13,25 @@ export const env = {
 };
 
 export function validateEnv(): void {
-  const required: (keyof typeof env)[] = ['DATABASE_URL', 'JWT_SECRET'];
+  const required: (keyof typeof env)[] = [
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'JWT_EXPIRES_IN',
+    'PORT',
+    'CORS_ORIGIN',
+  ];
+  const missing: string[] = [];
+
   for (const key of required) {
     if (!env[key]) {
-      console.error(`❌ Critical Startup Error: Missing environment variable '${key}'`);
-      process.exit(1);
+      missing.push(key);
     }
   }
+
+  if (missing.length > 0) {
+    console.error(`❌ Environment Validation Error: Missing required variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
   console.log('✅ Environment configuration validated successfully.');
 }
