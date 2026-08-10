@@ -10,6 +10,7 @@ import {
   User,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { NexoraLogo } from './branding/NexoraLogo';
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
@@ -39,7 +40,7 @@ export const Sidebar: React.FC = () => {
         padding: '1.5rem 1rem',
       }}
     >
-      {/* Brand Header with Original Vector SVG Icon */}
+      {/* NEXORA Brand Mark Header */}
       <div
         style={{
           display: 'flex',
@@ -50,34 +51,7 @@ export const Sidebar: React.FC = () => {
           marginBottom: '1.5rem',
         }}
       >
-        <div
-          style={{
-            width: '42px',
-            height: '42px',
-            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(99, 102, 241, 0.35)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-          }}
-        >
-          {/* Custom Original Vector Brand SVG */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 17L12 22L22 17" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M2 12L12 17L22 12" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-        <div>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-            Apex ERP + CRM
-          </h2>
-          <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-            Operations Portal
-          </span>
-        </div>
+        <NexoraLogo variant="full" size="md" light={true} />
       </div>
 
       {/* Navigation Links */}
