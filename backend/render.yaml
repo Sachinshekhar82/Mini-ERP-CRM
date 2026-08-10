@@ -3,7 +3,7 @@ services:
     name: mini-erp-crm-backend
     env: node
     region: singapore
-    buildCommand: npm install && npx prisma generate && npm run build
+    buildCommand: npm install && npx prisma generate && npm run build && npm run seed
     startCommand: npm start
     envVars:
       - key: NODE_ENV
