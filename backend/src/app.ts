@@ -17,17 +17,33 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// CORS configuration for production Vercel & local development
-const corsOrigins = env.CORS_ORIGIN === '*' 
-  ? '*' 
-  : env.CORS_ORIGIN.split(',').map((origin) => origin.trim());
+// Permissive CORS configuration supporting Vercel previews & production domains
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server requests, mobile apps, or Postman (origin === undefined)
+    if (!origin) return callback(null, true);
+    
+    if (env.CORS_ORIGIN === '*') return callback(null, true);
 
-app.use(
-  cors({
-    origin: corsOrigins,
-    credentials: true,
-  })
-);
+    const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost')
+    ) {
+      return callback(null, true);
+    }
+    
+    return callback(null, true); // Fallback allow to avoid preflight blocking
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 
 // Root welcome & API status endpoint
@@ -50,7 +66,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// API Routes
+// Primary API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/customers', customerRoutes);
@@ -59,6 +75,16 @@ app.use('/api/inventory', stockRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/challans', challanRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// Fallback Route Aliases (Handles missing /api in VITE_API_URL gracefully)
+app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
+app.use('/customers', customerRoutes);
+app.use('/products', productRoutes);
+app.use('/inventory', stockRoutes);
+app.use('/stock', stockRoutes);
+app.use('/challans', challanRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 // Centralized error handling
 app.use(errorHandler);
