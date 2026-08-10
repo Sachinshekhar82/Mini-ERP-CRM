@@ -4,7 +4,8 @@ import { env, validateEnv } from './config/env';
 // Validate required environment variables before boot
 validateEnv();
 
-const PORT = parseInt(env.PORT, 10);
+const parsedPort = parseInt(env.PORT, 10);
+const PORT = isNaN(parsedPort) ? 5000 : parsedPort;
 
 const server = app.listen(PORT, () => {
   console.log(`🚀 Mini ERP + CRM Server running in [${env.NODE_ENV}] mode on port ${PORT}`);
