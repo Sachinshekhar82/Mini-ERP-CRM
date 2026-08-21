@@ -12,104 +12,107 @@ async function generateDocumentationPdf() {
   // Title & Header
   doc
     .fillColor('#4F46E5')
-    .fontSize(24)
+    .fontSize(22)
     .font('Helvetica-Bold')
-    .text('NEXORA — Operations Portal', { align: 'center' });
+    .text('NEXORA — Mini Operations ERP', { align: 'center' });
   
   doc
     .fillColor('#6B7280')
-    .fontSize(12)
+    .fontSize(11)
     .font('Helvetica')
-    .text('Full-Stack Mini ERP + CRM Operations Suite Documentation', { align: 'center' })
-    .moveDown(1.5);
+    .text('Full-Stack Technical Case Study Documentation & Test Results', { align: 'center' })
+    .moveDown(1.2);
 
-  // Section: Executive Summary & Live Links
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('1. Live Deployment & Repository Links');
-  doc.moveDown(0.5);
+  // Section 1: Live Deployment & Links
+  doc.fillColor('#111827').fontSize(13).font('Helvetica-Bold').text('1. Live Deployment & Repository Links');
+  doc.moveDown(0.4);
 
   const links = [
     ['🌐 Live Frontend URL:', 'https://mini-erp-crm-gray.vercel.app/'],
     ['📡 Live Backend API URL:', 'https://mini-erp-crm-puyn.onrender.com/'],
     ['📁 GitHub Repository:', 'https://github.com/Sachinshekhar82/Mini-ERP-CRM.git'],
-    ['🧪 Health Check Endpoint:', 'https://mini-erp-crm-puyn.onrender.com/api/health'],
+    ['🩺 Health Check Endpoint:', 'https://mini-erp-crm-puyn.onrender.com/api/health'],
     ['📬 Postman Collection:', 'postman/Mini-ERP-CRM.postman_collection.json'],
   ];
 
   links.forEach(([label, value]) => {
-    doc.fillColor('#374151').fontSize(10).font('Helvetica-Bold').text(label, { continued: true });
+    doc.fillColor('#374151').fontSize(9.5).font('Helvetica-Bold').text(label, { continued: true });
     doc.fillColor('#4F46E5').font('Helvetica').text(` ${value}`);
-    doc.moveDown(0.3);
+    doc.moveDown(0.25);
   });
 
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 
-  // Section: Test Credentials
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('2. Demo Test Credentials (All Roles)');
-  doc.moveDown(0.5);
+  // Section 2: Demo Credentials
+  doc.fillColor('#111827').fontSize(13).font('Helvetica-Bold').text('2. Pre-Seeded Access Credentials (All Roles)');
+  doc.moveDown(0.4);
 
   const credentials = [
-    ['ADMIN', 'admin@company.com', 'password123', 'Full system access & User Administration'],
-    ['SALES', 'sales@company.com', 'password123', 'Customer CRM & Sales Challan creation'],
-    ['WAREHOUSE', 'warehouse@company.com', 'password123', 'Product catalog & Stock IN/OUT operations'],
+    ['ADMIN', 'admin@company.com', 'password123', 'Work Order creation, user admin, full permissions'],
+    ['OPERATIONS', 'ops@company.com', 'password123', 'Inventory management, 2-phase stock transfers'],
+    ['SALES', 'sales@company.com', 'password123', 'Customer orders, stock reservation, CRM'],
+    ['WAREHOUSE', 'warehouse@company.com', 'password123', 'Catalog management & Stock IN/OUT'],
     ['ACCOUNTS', 'accounts@company.com', 'password123', 'Financial audit & Challan confirmation'],
   ];
 
   credentials.forEach(([role, email, pass, desc]) => {
-    doc.fillColor('#4F46E5').fontSize(10).font('Helvetica-Bold').text(`• [${role}] `, { continued: true });
-    doc.fillColor('#111827').font('Helvetica').text(`${email} | Password: `, { continued: true });
+    doc.fillColor('#4F46E5').fontSize(9.5).font('Helvetica-Bold').text(`• [${role}] `, { continued: true });
+    doc.fillColor('#111827').font('Helvetica').text(`${email} | Pass: `, { continued: true });
     doc.fillColor('#059669').font('Helvetica-Bold').text(`${pass}`, { continued: true });
     doc.fillColor('#6B7280').font('Helvetica').text(` (${desc})`);
+    doc.moveDown(0.25);
+  });
+
+  doc.moveDown(0.8);
+
+  // Section 3: Recent Case Study Module Upgrades
+  doc.fillColor('#111827').fontSize(13).font('Helvetica-Bold').text('3. Core Case Study Modules & Recent Technical Upgrades');
+  doc.moveDown(0.4);
+
+  const modules = [
+    'Inventory Management: Multi-location tracking (Location A Main, Location B Branch), SKU, category, batch/lot numbers, physical quantity, reserved quantity, and calculated Available Quantity = Physical - Reserved. Prevents negative stock or over-allocation.',
+    'Work Orders & Shortage Check: Admin Work Order creation with automatic material shortage calculation (shortage = max(0, requiredQty - availableQty)), assigned staff user, and status lifecycle (ASSIGNED -> IN_PROGRESS -> COMPLETED).',
+    'Internal Stock Transfers (2-Phase): 2-phase stock transfer (REQUESTED -> DISPATCHED -> RECEIVED). Source physical stock reduces on Dispatch. Destination stock DOES NOT increase before Receipt. On Receipt, destination stock increases with double-receive protection.',
+    'Customer Orders & Stock Reservation: Sales User order creation with atomic stock reservation inside a single prisma.$transaction(). Concurrency protection guarantees two users cannot reserve more stock than available.',
+  ];
+
+  modules.forEach((mod) => {
+    doc.fillColor('#111827').fontSize(9).font('Helvetica').text(`• ${mod}`, { lineGap: 2.5 });
+    doc.moveDown(0.35);
+  });
+
+  doc.moveDown(0.8);
+
+  // Section 4: Mandatory Test Suite Results
+  doc.fillColor('#111827').fontSize(13).font('Helvetica-Bold').text('4. Mandatory Automated Test Suite Execution Results');
+  doc.moveDown(0.4);
+
+  const testResults = [
+    'Test 1 (Over-Reservation Protection): Cannot reserve more than available inventory. Over-reservation request rejected with HTTP 400 Insufficient Available Stock. (PASSED)',
+    'Test 2 (Over-Transfer Protection): Cannot transfer more than available inventory. Over-transfer request rejected with HTTP 400 Insufficient Stock. (PASSED)',
+    'Test 3 (2-Phase Transfer Verification): Source stock reduces on dispatch; Destination stock does NOT increase before receipt; Destination stock increases ONLY after transfer receipt. (PASSED)',
+    'Test 4 (Double-Receive Guard): Attempting second receipt on an already received transfer is rejected with HTTP 400 Transfer Already Received. (PASSED)',
+    'Test 5 (Role Authorization Guard): Sales User attempting to create an Admin Work Order is blocked with HTTP 403 Forbidden. (PASSED)',
+  ];
+
+  testResults.forEach((resText) => {
+    doc.fillColor('#059669').fontSize(9).font('Helvetica-Bold').text('  ✅ ', { continued: true });
+    doc.fillColor('#111827').font('Helvetica').text(resText, { lineGap: 2 });
     doc.moveDown(0.3);
   });
 
-  doc.moveDown(1);
+  doc.moveDown(0.8);
 
-  // Section: System Architecture
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('3. System Architecture');
-  doc.moveDown(0.5);
+  // Section 5: Architecture & Database
+  doc.fillColor('#111827').fontSize(13).font('Helvetica-Bold').text('5. System Architecture & Database Design');
+  doc.moveDown(0.4);
 
-  const archText = 
-    `NEXORA is built on a decoupled RESTful architecture designed for enterprise B2B wholesale and distribution operations:\n\n` +
-    `• Frontend: React 18 + TypeScript + Vite SPA, styled with custom B2B design tokens, localized skeleton loaders, and frame-0 instant UI shell rendering.\n` +
-    `• Backend: Express.js + TypeScript REST API enforcing JWT authentication, Helmet security headers, Zod schema validation, and role-based access control (RBAC).\n` +
-    `• Database: Cloud PostgreSQL database (Neon.tech) managed via Prisma ORM with relational integrity and multi-item atomic stock deduction transactions.\n` +
-    `• Storage: Sales Challan PDF invoice generation via PDFKit.`;
+  const arch = 
+    `• Decoupled Architecture: React 18 + Vite SPA deployed on Vercel; Express.js + TypeScript REST API deployed on Render.\n` +
+    `• Database: Cloud PostgreSQL database (Neon.tech) managed via Prisma ORM with relational constraints and atomic transactions.\n` +
+    `• Concurrency & Security: Multi-item atomic operations with prisma.$transaction(), Helmet HTTP protection, and JWT Bearer RBAC middleware.`;
 
-  doc.fillColor('#374151').fontSize(10).font('Helvetica').text(archText, { lineGap: 3 });
-
-  doc.moveDown(1);
-
-  // Section: Key Features & Business Logic
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('4. Core Business Logic & Features');
-  doc.moveDown(0.5);
-
-  const features = [
-    'Atomic Stock Deduction: Multi-item sales challan confirmation checks all product quantities inside a single prisma.$transaction(). If any item exceeds available stock, the entire transaction rolls back cleanly with 0 stock changes and 0 movement logs.',
-    'Product Price Snapshot: SalesChallanItem retains unitPriceSnapshot, skuSnapshot, and productNameSnapshot at creation time, ensuring future catalog price edits never corrupt historical invoices.',
-    'Customer CRM Pipeline: Multi-field search (name, business, email, phone, GSTIN), filters, pagination, and chronological follow-up timeline notes.',
-    'Inventory & Low Stock Warnings: Threshold alerts (currentStock <= minimumStock) and movement audit logs.',
-  ];
-
-  features.forEach((feat) => {
-    doc.fillColor('#111827').fontSize(10).font('Helvetica').text(`• ${feat}`, { lineGap: 3 });
-    doc.moveDown(0.4);
-  });
-
-  doc.moveDown(1);
-
-  // Section: Known Limitations & Future Improvements
-  doc.fillColor('#111827').fontSize(14).font('Helvetica-Bold').text('5. Known Limitations & Future Scope');
-  doc.moveDown(0.5);
-
-  const limitations = [
-    'Known Limitation: Sales challan cancellation currently applies to DRAFT status. Cancelling a CONFIRMED challan requires issuing a manual reverse Stock IN adjustment to preserve audit integrity.',
-    'Future Improvement: Multi-currency support and automated email dispatch of PDF invoices directly to customer email addresses.',
-  ];
-
-  limitations.forEach((lim) => {
-    doc.fillColor('#374151').fontSize(10).font('Helvetica').text(`• ${lim}`, { lineGap: 3 });
-    doc.moveDown(0.4);
-  });
+  doc.fillColor('#374151').fontSize(9).font('Helvetica').text(arch, { lineGap: 2.5 });
 
   doc.end();
 
@@ -120,5 +123,5 @@ async function generateDocumentationPdf() {
 }
 
 generateDocumentationPdf().then((file) => {
-  console.log(`✅ Documentation PDF generated successfully at: ${file}`);
+  console.log(`✅ Updated Documentation PDF generated successfully at: ${file}`);
 }).catch(console.error);
