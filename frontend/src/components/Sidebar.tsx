@@ -2,10 +2,12 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Users as UsersIcon,
   Package,
+  Wrench,
+  ArrowLeftRight,
+  ShoppingBag,
+  Users as UsersIcon,
   FileText,
-  History,
   ShieldCheck,
   User,
 } from 'lucide-react';
@@ -17,11 +19,13 @@ export const Sidebar: React.FC = () => {
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, badgeColor: '#6366F1' },
-    { to: '/customers', label: 'Customer CRM', icon: UsersIcon, badgeColor: '#10B981' },
-    { to: '/products', label: 'Products Catalog', icon: Package, badgeColor: '#3B82F6' },
-    { to: '/inventory', label: 'Inventory & Stock Logs', icon: History, badgeColor: '#F59E0B' },
-    { to: '/challans', label: 'Sales Challans', icon: FileText, badgeColor: '#EC4899' },
-    { to: '/profile', label: 'My Profile', icon: User, badgeColor: '#8B5CF6' },
+    { to: '/inventory', label: '1. Inventory Management', icon: Package, badgeColor: '#F59E0B' },
+    { to: '/work-orders', label: '2. Work Orders', icon: Wrench, badgeColor: '#6366F1' },
+    { to: '/transfers', label: '3. Internal Transfers', icon: ArrowLeftRight, badgeColor: '#10B981' },
+    { to: '/customer-orders', label: '4. Customer Orders & Stock', icon: ShoppingBag, badgeColor: '#EC4899' },
+    { to: '/customers', label: 'Customer CRM', icon: UsersIcon, badgeColor: '#3B82F6' },
+    { to: '/challans', label: 'Sales Challans', icon: FileText, badgeColor: '#8B5CF6' },
+    { to: '/profile', label: 'My Profile', icon: User, badgeColor: '#6B7280' },
   ];
 
   if (user?.role === 'ADMIN') {
@@ -40,7 +44,7 @@ export const Sidebar: React.FC = () => {
         padding: '1.5rem 1rem',
       }}
     >
-      {/* NEXORA Brand Mark Header */}
+      {/* NEXORA Brand Header */}
       <div
         style={{
           display: 'flex',
@@ -55,7 +59,7 @@ export const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1, overflowY: 'auto' }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -68,7 +72,7 @@ export const Sidebar: React.FC = () => {
                 gap: '0.75rem',
                 padding: '0.75rem 1rem',
                 borderRadius: '10px',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 fontWeight: isActive ? 600 : 500,
                 color: isActive ? '#FFFFFF' : 'var(--text-secondary)',
                 background: isActive
@@ -83,8 +87,8 @@ export const Sidebar: React.FC = () => {
                 <>
                   <div
                     style={{
-                      width: '28px',
-                      height: '28px',
+                      width: '26px',
+                      height: '26px',
                       borderRadius: '6px',
                       background: isActive ? 'rgba(255, 255, 255, 0.2)' : '#0F172A',
                       display: 'flex',
@@ -93,7 +97,7 @@ export const Sidebar: React.FC = () => {
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <Icon size={16} color={isActive ? '#FFFFFF' : item.badgeColor} />
+                    <Icon size={15} color={isActive ? '#FFFFFF' : item.badgeColor} />
                   </div>
                   <span>{item.label}</span>
                 </>
@@ -114,6 +118,7 @@ export const Sidebar: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
+            marginTop: '1rem',
           }}
         >
           <div
@@ -140,11 +145,9 @@ export const Sidebar: React.FC = () => {
               className={`badge ${
                 user.role === 'ADMIN'
                   ? 'badge-danger'
-                  : user.role === 'SALES'
-                  ? 'badge-primary'
-                  : user.role === 'WAREHOUSE'
+                  : user.role === 'OPERATIONS'
                   ? 'badge-warning'
-                  : 'badge-success'
+                  : 'badge-primary'
               }`}
               style={{ marginTop: '0.2rem', fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}
             >

@@ -12,13 +12,16 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      String   @default("SALES") // ADMIN, SALES, WAREHOUSE, ACCOUNTS
+  role      String   @default("SALES") // ADMIN, OPERATIONS, SALES, WAREHOUSE, ACCOUNTS
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   createdFollowUps      CustomerFollowUp[]
   createdStockMovements StockMovement[]
   createdChallans       SalesChallan[]
+  assignedWorkOrders    WorkOrder[]
+  createdTransfers      InternalTransfer[]
+  createdOrders         CustomerOrder[]
 
   @@index([email])
   @@index([role])
@@ -135,4 +138,93 @@ model SalesChallanItem {
 
   @@index([challanId])
   @@index([productId])
+}
+
+// ============================================================================
+// MANDATORY CASE STUDY MODULES (Inventory, Work Orders, Transfers, Reservations)
+// ============================================================================
+
+model InventoryItem {
+  id           String   @id @default(uuid())
+  itemName     String
+  sku          String
+  category     String
+  location     String   // e.g. "Location A (Warehouse Main)", "Location B (Branch Depot)"
+  batch        String   // Batch / Lot Number e.g. "BATCH-2026-01"
+  physicalQty  Int      @default(0)
+  reservedQty  Int      @default(0)
+  availableQty Int      @default(0) // Physical - Reserved
+  unitPrice    Float    @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workOrders        WorkOrder[]
+  internalTransfers InternalTransfer[]
+  customerOrders    CustomerOrder[]
+
+  @@unique([sku, location, batch])
+  @@index([sku])
+  @@index([location])
+  @@index([category])
+}
+
+model WorkOrder {
+  id              String        @id @default(uuid())
+  workOrderNumber String        @unique // e.g. "WO-2026-0001"
+  location        String
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  requiredQty     Int
+  shortageQty     Int           @default(0) // Auto-calculated shortage
+  assignedUserId  String
+  assignedUser    User          @relation(fields: [assignedUserId], references: [id])
+  status          String        @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([workOrderNumber])
+  @@index([location])
+  @@index([status])
+  @@index([assignedUserId])
+}
+
+model InternalTransfer {
+  id                  String        @id @default(uuid())
+  transferNumber      String        @unique // e.g. "TR-2026-0001"
+  sourceLocation      String
+  destinationLocation String
+  inventoryItemId     String
+  inventoryItem       InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  quantity            Int
+  status              String        @default("REQUESTED") // REQUESTED, DISPATCHED, RECEIVED
+  dispatchedAt        DateTime?
+  receivedAt          DateTime?
+  createdById         String
+  createdBy           User          @relation(fields: [createdById], references: [id])
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([transferNumber])
+  @@index([sourceLocation])
+  @@index([destinationLocation])
+  @@index([status])
+}
+
+model CustomerOrder {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique // e.g. "ORD-2026-0001"
+  customerName    String
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  quantity        Int
+  status          String        @default("PENDING") // PENDING, RESERVED, COMPLETED, CANCELLED
+  createdById     String
+  createdBy       User          @relation(fields: [createdById], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([orderNumber])
+  @@index([status])
+  @@index([createdById])
 }

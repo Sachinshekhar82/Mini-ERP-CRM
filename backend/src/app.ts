@@ -10,6 +10,10 @@ import productRoutes from './routes/products';
 import stockRoutes from './routes/stock';
 import challanRoutes from './routes/challans';
 import dashboardRoutes from './routes/dashboard';
+import inventoryItemRoutes from './routes/inventoryItems';
+import workOrderRoutes from './routes/workOrders';
+import transferRoutes from './routes/transfers';
+import customerOrderRoutes from './routes/customerOrders';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -20,9 +24,7 @@ app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 // Permissive CORS configuration supporting Vercel previews & production domains
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    // Allow server-to-server requests, mobile apps, or Postman (origin === undefined)
     if (!origin) return callback(null, true);
-    
     if (env.CORS_ORIGIN === '*') return callback(null, true);
 
     const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
@@ -33,8 +35,7 @@ const corsOptions: cors.CorsOptions = {
     ) {
       return callback(null, true);
     }
-    
-    return callback(null, true); // Fallback allow to avoid preflight blocking
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -51,7 +52,7 @@ app.get('/', (req, res) => {
   return res.status(200).json({
     success: true,
     name: 'NEXORA Operations Portal Backend API',
-    version: '1.0.0',
+    version: '2.0.0',
     status: 'ONLINE',
     documentation: 'https://github.com/Sachinshekhar82/Mini-ERP-CRM',
     healthCheck: '/api/health',
@@ -76,6 +77,12 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/challans', challanRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+// Mandatory Case Study Module Routes
+app.use('/api/inventory-items', inventoryItemRoutes);
+app.use('/api/work-orders', workOrderRoutes);
+app.use('/api/transfers', transferRoutes);
+app.use('/api/customer-orders', customerOrderRoutes);
+
 // Fallback Route Aliases (Handles missing /api in VITE_API_URL gracefully)
 app.use('/auth', authRoutes);
 app.use('/users', userRoutes);
@@ -85,6 +92,10 @@ app.use('/inventory', stockRoutes);
 app.use('/stock', stockRoutes);
 app.use('/challans', challanRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/inventory-items', inventoryItemRoutes);
+app.use('/work-orders', workOrderRoutes);
+app.use('/transfers', transferRoutes);
+app.use('/customer-orders', customerOrderRoutes);
 
 // Centralized error handling
 app.use(errorHandler);

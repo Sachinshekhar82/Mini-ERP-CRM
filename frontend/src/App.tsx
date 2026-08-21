@@ -15,6 +15,12 @@ const Challans = lazy(() => import('./pages/Challans').then((m) => ({ default: m
 const Profile = lazy(() => import('./pages/Profile').then((m) => ({ default: m.Profile })));
 const Users = lazy(() => import('./pages/Users').then((m) => ({ default: m.Users })));
 
+// Mandatory Case Study Module Components
+const InventoryItems = lazy(() => import('./pages/InventoryItems').then((m) => ({ default: m.InventoryItems })));
+const WorkOrders = lazy(() => import('./pages/WorkOrders').then((m) => ({ default: m.WorkOrders })));
+const InternalTransfers = lazy(() => import('./pages/InternalTransfers').then((m) => ({ default: m.InternalTransfers })));
+const CustomerOrders = lazy(() => import('./pages/CustomerOrders').then((m) => ({ default: m.CustomerOrders })));
+
 // Lightweight skeleton fallback for lazy-loaded secondary routes
 const RouteSkeletonFallback: React.FC = () => (
   <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -30,12 +36,10 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; 
 }) => {
   const { token, user, loading } = useAuth();
 
-  // If token is missing, redirect immediately to login without blank screen delay
   if (!token && !loading) {
     return <Navigate to="/login" replace />;
   }
 
-  // If user is verified and role unauthorized
   if (roles && user && !roles.includes(user.role)) {
     return (
       <div className="app-container">
@@ -50,7 +54,6 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode; pageTitle: string; 
     );
   }
 
-  // INSTANT SHELL RENDER: Sidebar, Navbar, and Page Body render immediately!
   return (
     <div className="app-container">
       <Sidebar />
@@ -81,6 +84,46 @@ export const App: React.FC = () => {
             }
           />
 
+          {/* Mandatory Case Study Module 1: Inventory Management */}
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedLayout pageTitle="Inventory Management (Multi-Location & Batches)">
+                <InventoryItems />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Mandatory Case Study Module 2: Work Orders */}
+          <Route
+            path="/work-orders"
+            element={
+              <ProtectedLayout pageTitle="Work Orders & Material Stock Check">
+                <WorkOrders />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Mandatory Case Study Module 3: Internal Stock Transfers */}
+          <Route
+            path="/transfers"
+            element={
+              <ProtectedLayout pageTitle="Internal Stock Transfers (2-Phase Workflow)">
+                <InternalTransfers />
+              </ProtectedLayout>
+            }
+          />
+
+          {/* Mandatory Case Study Module 4: Customer Orders & Stock Reservation */}
+          <Route
+            path="/customer-orders"
+            element={
+              <ProtectedLayout pageTitle="Customer Orders & Stock Reservation">
+                <CustomerOrders />
+              </ProtectedLayout>
+            }
+          />
+
           {/* Customer CRM Routes */}
           <Route
             path="/customers"
@@ -90,74 +133,18 @@ export const App: React.FC = () => {
               </ProtectedLayout>
             }
           />
-          <Route
-            path="/customers/new"
-            element={
-              <ProtectedLayout pageTitle="Customer CRM Portal - New Customer">
-                <Customers />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/customers/:id"
-            element={
-              <ProtectedLayout pageTitle="Customer CRM Portal - Details">
-                <Customers />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/customers/:id/edit"
-            element={
-              <ProtectedLayout pageTitle="Customer CRM Portal - Edit Customer">
-                <Customers />
-              </ProtectedLayout>
-            }
-          />
 
           {/* Product Catalog Routes */}
           <Route
             path="/products"
             element={
-              <ProtectedLayout pageTitle="Products & Inventory Management">
-                <Products />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/products/new"
-            element={
-              <ProtectedLayout pageTitle="Add New Product">
-                <Products />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/products/:id"
-            element={
-              <ProtectedLayout pageTitle="Product Details">
-                <Products />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/products/:id/edit"
-            element={
-              <ProtectedLayout pageTitle="Edit Product">
+              <ProtectedLayout pageTitle="Products Catalog">
                 <Products />
               </ProtectedLayout>
             }
           />
 
-          {/* Inventory & Stock Movement Logs */}
-          <Route
-            path="/inventory"
-            element={
-              <ProtectedLayout pageTitle="Inventory & Stock Movements">
-                <StockLogs />
-              </ProtectedLayout>
-            }
-          />
+          {/* Stock Movement Audit Logs */}
           <Route
             path="/stock-logs"
             element={
@@ -172,22 +159,6 @@ export const App: React.FC = () => {
             path="/challans"
             element={
               <ProtectedLayout pageTitle="Sales Challans & Invoices">
-                <Challans />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/challans/new"
-            element={
-              <ProtectedLayout pageTitle="Generate Sales Challan">
-                <Challans />
-              </ProtectedLayout>
-            }
-          />
-          <Route
-            path="/challans/:id"
-            element={
-              <ProtectedLayout pageTitle="Sales Challan Details">
                 <Challans />
               </ProtectedLayout>
             }
@@ -214,15 +185,6 @@ export const App: React.FC = () => {
           />
 
           {/* 404 Pages */}
-          <Route
-            path="/404"
-            element={
-              <ProtectedLayout pageTitle="404 Page Not Found">
-                <NotFound />
-              </ProtectedLayout>
-            }
-          />
-
           <Route
             path="*"
             element={
